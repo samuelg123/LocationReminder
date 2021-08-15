@@ -2,7 +2,6 @@ package com.udacity.project4.locationreminders.savereminder
 
 import android.app.Application
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.PointOfInterest
@@ -14,19 +13,38 @@ import com.udacity.project4.locationreminders.data.local.RemindersLocalRepositor
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import kotlinx.coroutines.launch
 
-class SaveReminderViewModel(val app: Application, val dataSource: RemindersLocalRepository) :
-    BaseViewModel(app) {
+class SaveReminderViewModel(
+    val app: Application,
+    val dataSource: RemindersLocalRepository
+) : BaseViewModel(app) {
     val reminderTitle = MutableLiveData<String>()
     val reminderDescription = MutableLiveData<String>()
     val reminderSelectedLocationStr = MutableLiveData<String>()
-    val selectedPOI = MutableLiveData<PointOfInterest?>()
     val latitude = MutableLiveData<Double?>()
     val longitude = MutableLiveData<Double?>()
-    private val itemMarker = MutableLiveData<Marker?>()
+    val currentPOI = MutableLiveData<PointOfInterest?>()
+    private var currentMarker: Marker? = null
+    private var selectedPOI: PointOfInterest? = null
+    private var isPoiCommitted: Boolean = false
 
     fun setMarker(marker: Marker?) {
-        itemMarker.value?.remove()
-        itemMarker.value = marker
+        currentMarker?.remove()
+        currentMarker = marker
+    }
+
+    fun commitPoi() {
+        selectedPOI = currentPOI.value
+        longitude.value = selectedPOI?.latLng?.longitude
+        latitude.value = selectedPOI?.latLng?.longitude
+        isPoiCommitted = true
+    }
+
+    fun clearCurrentPoi() {
+        if (!isPoiCommitted) {
+            currentPOI.value = null
+        } else {
+            isPoiCommitted = false
+        }
     }
 
     /**
@@ -36,10 +54,11 @@ class SaveReminderViewModel(val app: Application, val dataSource: RemindersLocal
         reminderTitle.value = ""
         reminderDescription.value = ""
         reminderSelectedLocationStr.value = ""
-        selectedPOI.value = null
+        currentPOI.value = null
         latitude.value = null
         longitude.value = null
-        itemMarker.value = null
+        currentMarker = null
+        selectedPOI = null
     }
 
     /**

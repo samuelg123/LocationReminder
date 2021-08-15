@@ -1,16 +1,12 @@
 package com.udacity.project4.locationreminders.savereminder.selectreminderlocation
 
-
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Intent
-import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
-import android.provider.Settings
 import android.view.*
 import androidx.annotation.RawRes
 import androidx.core.app.ActivityCompat
@@ -18,8 +14,6 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -28,7 +22,6 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.gms.tasks.CancellationTokenSource
-import com.google.android.gms.tasks.Task
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
@@ -72,7 +65,13 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         return binding.root
     }
 
+    override fun onDestroy() {
+        _viewModel.clearCurrentPoi()
+        super.onDestroy()
+    }
+
     fun onLocationSelected() {
+        _viewModel.commitPoi()
         findNavController().navigateUp()
     }
 
@@ -112,21 +111,21 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         else -> super.onOptionsItemSelected(item)
     }
 
-    @DelicateCoroutinesApi
     override fun onMapReady(map: GoogleMap) {
         this.googleMap = map
         setMapStyle(R.raw.mapstyles01)
-        _viewModel.selectedPOI.observe(viewLifecycleOwner) {
+        _viewModel.currentPOI.observe(viewLifecycleOwner) {
             it?.let {
+                gotoPoi(it)
                 setMarker(it.latLng, it.name)?.showInfoWindow()
             }
         }
         googleMap.setOnPoiClickListener { poi ->
-            _viewModel.selectedPOI.value = poi
+            _viewModel.currentPOI.value = poi
         }
         lifecycleScope.launch {
-            val isGranted = enableGps()
-            if (!isGranted) return@launch
+            val isGranted = parentActivity.enableLocationService()
+            if (isGranted) enableMyLocation()
         }
     }
 
@@ -147,13 +146,17 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         }
     }
 
-    private suspend fun gotoMyLoc() {
+    private suspend fun gotoMyLocation() {
         getLastLocation()?.run {
             val homeLatLng = LatLng(latitude, longitude)
             withContext(Dispatchers.Main) {
                 googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeLatLng, 15F))
             }
         }
+    }
+
+    private fun gotoPoi(poi: PointOfInterest) {
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(poi.latLng, 15F))
     }
 
     @SuppressLint("MissingPermission")
@@ -179,47 +182,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         cancellationTokenSource.cancel()
     }
 
-    private suspend fun enableGps(): Boolean {
-        val locationRequest = LocationRequest.create()
-            .setPriority(PRIORITY_HIGH_ACCURACY)
-            .setInterval((10 * 1000).toLong())
-            .setFastestInterval((1 * 1000).toLong())
-
-        val settingsBuilder = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest)
-            .setAlwaysShow(true)
-        var isEnabled = true
-        var states: LocationSettingsStates? = null
-
-        suspend fun locationSettings() =
-            LocationServices.getSettingsClient(requireActivity())
-                .checkLocationSettings(settingsBuilder.build()).asDeferred().await()
-
-        try {
-            states = locationSettings().locationSettingsStates
-        } catch (ex: ApiException) {
-            when (ex.statusCode) {
-                LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
-                    isEnabled = ex.status.reqGps()
-                    if (isEnabled) states =
-                        locationSettings().locationSettingsStates
-                }
-                LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
-                    /* no-op */
-                }
-                LocationSettingsStatusCodes.SUCCESS -> {
-                    // All location settings are satisfied. The client can initialize location
-                    // requests here.
-                }
-            }
-        } catch (e: ResolvableApiException) {
-            /* no-op */
-        } finally {
-            if (states?.isGpsUsable == true) enableMyLocation()
-        }
-        return isEnabled
-    }
-
     private fun isLocationEnabled(): Boolean {
         val locationManager: LocationManager? =
             getSystemService(requireContext(), LocationManager::class.java)
@@ -234,14 +196,16 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             isGranted = requestLocationPermission()
             if (!isGranted) return
         }
-        gotoMyLoc()
+        if (_viewModel.currentPOI.value == null) {
+            gotoMyLocation()
+        }
         withContext(Dispatchers.Main) {
             googleMap.isMyLocationEnabled = true
         }
     }
 
     private suspend fun requestLocationPermission(): Boolean =
-        reqPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        parentActivity.requestForPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
 
     private fun isPermissionGranted(): Boolean = ActivityCompat.checkSelfPermission(
         requireContext(),
@@ -250,4 +214,10 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         requireContext(),
         Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding.unbind()
+    }
 }

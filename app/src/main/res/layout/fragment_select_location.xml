@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:bind="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
-
         <variable
             name="fragment"
             type="com.udacity.project4.locationreminders.savereminder.selectreminderlocation.SelectLocationFragment" />
@@ -30,12 +28,12 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/save"
+            style="@style/MaterialButton.Accent"
             android:layout_width="0dp"
             android:layout_height="60dp"
+            android:enabled="@{viewModel.currentPOI != null}"
             android:onClick="@{(v)->fragment.onLocationSelected()}"
             android:text="@string/save"
-            android:textColor="@color/white"
-            app:backgroundTint="#F50057"
             app:elevation="0dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

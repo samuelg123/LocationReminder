@@ -116,6 +116,11 @@ class LoginFragment : Fragment() {
         }
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        binding.unbind()
+    }
+
     companion object {
         const val TAG = "LoginFragment"
         const val SIGN_IN_RESULT_CODE = 1001
