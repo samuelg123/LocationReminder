@@ -7,8 +7,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.annotation.CallSuper
 import androidx.databinding.DataBindingUtil
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
@@ -23,12 +23,13 @@ import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
-import org.koin.android.ext.android.inject
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 import java.util.concurrent.TimeUnit
 
-class SaveReminderFragment : BaseFragment() {
+class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     //Get the view model this time as a single to be shared with the another fragment
-    override val _viewModel: SaveReminderViewModel by inject()
+    override val viewModel by sharedViewModel<SaveReminderViewModel>()
+
     private lateinit var binding: FragmentSaveReminderBinding
 
     private lateinit var geofencingClient: GeofencingClient
@@ -59,26 +60,26 @@ class SaveReminderFragment : BaseFragment() {
 
         setDisplayHomeAsUpEnabled(true)
 
-        binding.viewModel = _viewModel
+        binding.viewModel = viewModel
+        binding.lifecycleOwner = this
 
         return binding.root
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.lifecycleOwner = this
         binding.selectLocation.setOnClickListener {
             //            Navigate to another fragment to get the user location
-            _viewModel.navigationCommand.value =
+            viewModel.navigationCommand.value =
                 NavigationCommand.To(SaveReminderFragmentDirections.actionSaveReminderFragmentToSelectLocationFragment())
         }
 
         binding.saveReminder.setOnClickListener {
-            val title = _viewModel.reminderTitle.value
-            val description = _viewModel.reminderDescription.value
-            val location = _viewModel.reminderSelectedLocationStr.value
-            val latitude = _viewModel.latitude.value
-            val longitude = _viewModel.longitude.value
+            val title = viewModel.reminderTitle.value
+            val description = viewModel.reminderDescription.value
+            val location = viewModel.reminderSelectedLocationStr.value
+            val latitude = viewModel.latitude.value
+            val longitude = viewModel.longitude.value
 
             lifecycleScope.launchWhenStarted {
                 val reminderData = ReminderDataItem(
@@ -88,8 +89,9 @@ class SaveReminderFragment : BaseFragment() {
                     latitude,
                     longitude
                 )
-                startGeofence(reminderData)
-                _viewModel.saveReminder(reminderData)
+                if (viewModel.validateAndSaveReminder(reminderData)) {
+                    startGeofence(reminderData)
+                }
             }
         }
     }
@@ -119,7 +121,7 @@ class SaveReminderFragment : BaseFragment() {
         lifecycleScope.launch {
             removeGeofences()
             //make sure to clear the view model after destroy, as it's a single view model.
-            _viewModel.onClear()
+            viewModel.onClear()
         }
     }
 

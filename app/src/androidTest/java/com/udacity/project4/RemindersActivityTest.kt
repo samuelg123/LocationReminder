@@ -40,13 +40,13 @@ class RemindersActivityTest :
             viewModel {
                 RemindersListViewModel(
                     appContext,
-                    get() as ReminderDataSource
+                    get()
                 )
             }
             single {
                 SaveReminderViewModel(
                     appContext,
-                    get() as ReminderDataSource
+                    get()
                 )
             }
             single { RemindersLocalRepository(get()) as ReminderDataSource }

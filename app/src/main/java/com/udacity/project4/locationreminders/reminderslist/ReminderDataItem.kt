@@ -18,3 +18,6 @@ data class ReminderDataItem(
 
 fun ReminderDTO.toEntity(): ReminderDataItem =
     ReminderDataItem(title, description, location, latitude, longitude, id)
+
+fun ReminderDataItem.toDTO(): ReminderDTO =
+    ReminderDTO(title, description, location, latitude, longitude, id)

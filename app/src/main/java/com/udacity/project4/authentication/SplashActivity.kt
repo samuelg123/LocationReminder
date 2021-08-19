@@ -3,16 +3,12 @@ package com.udacity.project4.authentication
 import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import androidx.activity.viewModels
-import androidx.fragment.app.viewModels
-import androidx.navigation.Navigation
-import androidx.navigation.fragment.findNavController
-import androidx.navigation.ui.NavigationUI
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import com.udacity.project4.R
 import com.udacity.project4.locationreminders.RemindersActivity
 
 class SplashActivity : AppCompatActivity() {
-    private val viewModel: SplashViewModel by viewModels()
+    private val viewModel: SplashViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

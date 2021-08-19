@@ -18,7 +18,7 @@ abstract class BaseViewModel(app: Application) : AndroidViewModel(app) {
     val showLoading: SingleLiveEvent<Boolean> = SingleLiveEvent()
     val showNoData: MutableLiveData<Boolean> = MutableLiveData()
 
-    protected inline fun <T> loading(task: () -> T) : T {
+    protected suspend inline fun <T> loading(crossinline task: suspend () -> T): T {
         try {
             showLoading.value = true
             return task.invoke()

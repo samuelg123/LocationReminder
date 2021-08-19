@@ -14,8 +14,10 @@ import androidx.core.content.ContextCompat.getSystemService
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
-import com.google.android.gms.location.*
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -27,14 +29,17 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
-import org.koin.android.ext.android.inject
+import kotlinx.coroutines.withContext
+import org.koin.androidx.viewmodel.ext.android.sharedViewModel
 
-class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
+class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReadyCallback {
+
+    override val viewModel by sharedViewModel<SaveReminderViewModel>()
 
     //Use Koin to get the view model of the SaveReminder
-    override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var googleMap: GoogleMap
     private lateinit var geofencingClient: GeofencingClient
     private lateinit var binding: FragmentSelectLocationBinding
@@ -52,7 +57,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
         binding.fragment = this
-        binding.viewModel = _viewModel
+        binding.viewModel = viewModel
         binding.lifecycleOwner = this
 
         setHasOptionsMenu(true)
@@ -66,12 +71,12 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     }
 
     override fun onDestroy() {
-        _viewModel.clearCurrentPoi()
+        viewModel.clearCurrentPoi()
         super.onDestroy()
     }
 
     fun onLocationSelected() {
-        _viewModel.commitPoi()
+        viewModel.commitPoi()
         findNavController().navigateUp()
     }
 
@@ -82,7 +87,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
                 .title(title)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)) // change marker color to blue
         )
-        _viewModel.setMarker(marker)
+        viewModel.setMarker(marker)
         return marker
     }
 
@@ -114,14 +119,14 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap) {
         this.googleMap = map
         setMapStyle(R.raw.mapstyles01)
-        _viewModel.currentPOI.observe(viewLifecycleOwner) {
+        viewModel.currentPOI.observe(viewLifecycleOwner) {
             it?.let {
                 gotoPoi(it)
                 setMarker(it.latLng, it.name)?.showInfoWindow()
             }
         }
         googleMap.setOnPoiClickListener { poi ->
-            _viewModel.currentPOI.value = poi
+            viewModel.currentPOI.value = poi
         }
         lifecycleScope.launch {
             val isGranted = parentActivity.enableLocationService()
@@ -196,7 +201,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback {
             isGranted = requestLocationPermission()
             if (!isGranted) return
         }
-        if (_viewModel.currentPOI.value == null) {
+        if (viewModel.currentPOI.value == null) {
             gotoMyLocation()
         }
         withContext(Dispatchers.Main) {

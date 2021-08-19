@@ -8,7 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import com.firebase.ui.auth.AuthUI
 import com.firebase.ui.auth.IdpResponse
 import com.google.firebase.auth.FirebaseAuth
@@ -20,7 +20,7 @@ import com.udacity.project4.utils.toast
 
 class LoginFragment : Fragment() {
 
-    private val viewModel: LoginViewModel by viewModels()
+    private val viewModel: LoginViewModel by viewModel()
 
     private lateinit var binding: LoginFragmentBinding
 
@@ -31,6 +31,7 @@ class LoginFragment : Fragment() {
         binding = LoginFragmentBinding.inflate(inflater)
         binding.fragment = this
         binding.lifecycleOwner = this
+
         binding.googleSigninButton.setOnClickListener {
             signInWithGoogle()
         }
@@ -57,7 +58,10 @@ class LoginFragment : Fragment() {
 
     fun signInWithEmail(view: View) {
         val providers = arrayListOf(
-            AuthUI.IdpConfig.EmailBuilder().build()
+            AuthUI
+                .IdpConfig
+                .EmailBuilder()
+                .build()
         )
 
         // Create and launch sign-in intent.
@@ -75,7 +79,9 @@ class LoginFragment : Fragment() {
 
     fun signInWithGoogle() {
         val providers = arrayListOf(
-            AuthUI.IdpConfig.GoogleBuilder().build()
+            AuthUI.IdpConfig
+                .GoogleBuilder()
+                .build()
         )
 
         // Create and launch sign-in intent.

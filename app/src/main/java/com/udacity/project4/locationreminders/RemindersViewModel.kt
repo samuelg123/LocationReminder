@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.withContext
 
-class RemindersViewModel(application: Application) : BaseViewModel(application) {
+class RemindersViewModel(app: Application) : BaseViewModel(app) {
     sealed class Event {
         object Logout : Event()
     }
