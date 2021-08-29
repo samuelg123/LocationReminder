@@ -1,6 +1,6 @@
 # Instruction
 
-1. Put MAPS_API_KEY=<your api key> inside local.properties
+Put MAPS_API_KEY=<your api key> inside local.properties
 
 # Location Reminder
 
