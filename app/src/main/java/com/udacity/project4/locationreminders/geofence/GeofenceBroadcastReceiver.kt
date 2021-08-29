@@ -34,7 +34,10 @@ private const val TAG = "GeofenceReceiver"
 class GeofenceBroadcastReceiver : BroadcastReceiver(), KoinComponent {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == ACTION_GEOFENCE_EVENT)
+        Log.d(TAG,"onReceive")
+        if (intent.action == ACTION_GEOFENCE_EVENT) {
+            Log.d(TAG,"ACTION_GEOFENCE_EVENT")
             GeofenceTransitionsJobIntentService.enqueueWork(context, intent)
+        }
     }
 }

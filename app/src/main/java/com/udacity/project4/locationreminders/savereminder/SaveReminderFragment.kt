@@ -90,8 +90,8 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
                     latitude,
                     longitude
                 )
-                if (viewModel.validateAndSaveReminder(reminderData)) {
-                    startGeofence(reminderData)
+                if (startGeofence(reminderData)) {
+                    viewModel.validateAndSaveReminder(reminderData)
                 }
             }
         }
@@ -101,14 +101,15 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         geofencingClient = LocationServices.getGeofencingClient(requireContext())
     }
 
-    private suspend fun startGeofence(vararg reminders: ReminderDataItem) {
+    private suspend fun startGeofence(vararg reminders: ReminderDataItem): Boolean {
         if (parentActivity.requestForegroundAndBackgroundLocationPermissions() &&
             parentActivity.enableLocationService()
         ) {
             for (reminder in reminders) {
-                addGeofence(reminder)
+                if (!addGeofence(reminder)) return false
             }
-        }
+            return true
+        } else return false
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,7 +121,7 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     override fun onDestroy() {
         super.onDestroy()
         lifecycleScope.launch {
-            removeGeofences()
+//            removeGeofences()
             //make sure to clear the view model after destroy, as it's a single view model.
             viewModel.onClear()
         }
@@ -173,7 +174,7 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     companion object {
         internal const val ACTION_GEOFENCE_EVENT =
             "RemindersActivity.locationreminders.action.ACTION_GEOFENCE_EVENT"
-        const val GEOFENCE_RADIUS_IN_METERS = 100f
+        const val GEOFENCE_RADIUS_IN_METERS = 300f
         val GEOFENCE_EXPIRATION_IN_MILLISECONDS: Long = TimeUnit.HOURS.toMillis(1)
     }
 }
