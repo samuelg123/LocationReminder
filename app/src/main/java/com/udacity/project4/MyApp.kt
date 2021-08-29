@@ -1,8 +1,7 @@
 package com.udacity.project4
 
 import android.app.Application
-import com.udacity.project4.modules.dataModule
-import com.udacity.project4.modules.viewModelModule
+import com.udacity.project4.modules.AppModules
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -16,7 +15,12 @@ open class MyApp : Application() {
          */
         startKoin {
             androidContext(this@MyApp)
-            modules(viewModelModule, dataModule)
+            with(AppModules){
+                modules(
+                    presentation,
+                    data
+                )
+            }
         }
     }
 }

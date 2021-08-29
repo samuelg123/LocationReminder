@@ -1,4 +1,4 @@
-package com.udacity.project4.locationreminders.util
+package com.udacity.project4.util
 
 import com.google.android.gms.maps.model.LatLng
 import kotlin.math.acos
@@ -31,10 +31,7 @@ private val title = arrayOf(
 private const val lorem = "Lorem ipsum dolor sit amet, " +
         "consectetur adipiscing elit, sed do eiusmod tempor " +
         "incididunt ut labore et dolore magna aliqua. Laoreet " +
-        "suspendisse interdum consectetur libero id faucibus. " +
-        "Facilisis sed odio morbi quis commodo odio aenean sed. " +
-        "Tortor aliquam nulla facilisi cras. A diam maecenas sed " +
-        "enim. Vel pharetra vel turpis nunc eget lorem."
+        "suspendisse interdum consectetur libero id faucibus. "
 
 fun generatePlace(): String {
     val i: Int = places.indices.random()

@@ -5,25 +5,25 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.google.common.truth.Truth.assertThat
 import com.udacity.project4.locationreminders.base.BaseTest
-import com.udacity.project4.locationreminders.data.ReminderFakeRepository
+import com.udacity.project4.locationreminders.data.ReminderFakeDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
-import com.udacity.project4.locationreminders.util.generateRandomCoordinates
-import com.udacity.project4.locationreminders.util.getOrAwaitValue
+import com.udacity.project4.locationreminders.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.test.inject
+import java.util.*
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
 class SaveReminderViewModelTest : BaseTest() {
 
     //GIVEN
-    private val remindersRepository by inject<ReminderFakeRepository>()
+    private val remindersRepository by inject<ReminderFakeDataSource>()
     private val saveReminderViewModel by inject<SaveReminderViewModel>()
 
     @Before
@@ -32,9 +32,9 @@ class SaveReminderViewModelTest : BaseTest() {
             *Array(10) {
                 val coordinates = generateRandomCoordinates()
                 ReminderDTO(
-                    title = faker.book.title(),
-                    description = faker.lorem.words(),
-                    location = faker.company.name(),
+                    title = generateTitle(),
+                    description = generateDescription(),
+                    location = generatePlace(),
                     latitude = coordinates.latitude,
                     longitude = coordinates.longitude,
                 )
@@ -47,9 +47,9 @@ class SaveReminderViewModelTest : BaseTest() {
         // GIVEN correct data
         val coordinates = generateRandomCoordinates()
         val data = ReminderDataItem(
-            title = faker.book.title(),
-            description = faker.lorem.words(),
-            location = faker.company.name(),
+            title = generateTitle(),
+            description = generateDescription(),
+            location = generatePlace(),
             latitude = coordinates.latitude,
             longitude = coordinates.longitude,
         )
@@ -67,7 +67,7 @@ class SaveReminderViewModelTest : BaseTest() {
         val data = ReminderDataItem(
             title = null,
             description = null,
-            location = faker.company.name(),
+            location = generatePlace(),
             latitude = null,
             longitude = null,
         )
@@ -85,9 +85,9 @@ class SaveReminderViewModelTest : BaseTest() {
             // GIVEN input data
             val coordinates = generateRandomCoordinates()
             val input = ReminderDataItem(
-                title = faker.book.title(),
-                description = faker.lorem.words(),
-                location = faker.company.name(),
+                title = generateTitle(),
+                description = generateDescription(),
+                location = generatePlace(),
                 latitude = coordinates.latitude,
                 longitude = coordinates.longitude,
             )
@@ -119,8 +119,8 @@ class SaveReminderViewModelTest : BaseTest() {
         val coordinates = generateRandomCoordinates()
         val poi = PointOfInterest(
             LatLng(coordinates.latitude, coordinates.longitude),
-            faker.random.nextUUID(),
-            faker.company.name(),
+            UUID.randomUUID().toString(),
+            generatePlace(),
         )
         saveReminderViewModel.currentPOI.value = poi
 
@@ -142,13 +142,13 @@ class SaveReminderViewModelTest : BaseTest() {
         val coordinates = generateRandomCoordinates()
         val poi = PointOfInterest(
             LatLng(coordinates.latitude, coordinates.longitude),
-            faker.random.nextUUID(),
-            faker.company.name(),
+            UUID.randomUUID().toString(),
+            generatePlace(),
         )
         val input = ReminderDataItem(
-            title = faker.book.title(),
-            description = faker.lorem.words(),
-            location = faker.company.name(),
+            title = generateTitle(),
+            description = generateDescription(),
+            location = generatePlace(),
             latitude = coordinates.latitude,
             longitude = coordinates.longitude,
         )

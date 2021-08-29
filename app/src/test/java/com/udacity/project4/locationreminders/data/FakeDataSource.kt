@@ -6,7 +6,7 @@ import com.udacity.project4.locationreminders.data.dto.Result
 import java.util.LinkedHashMap
 
 //Use FakeDataSource that acts as a test double to the LocalDataSource
-class ReminderFakeRepository : ReminderDataSource {
+class ReminderFakeDataSource : ReminderDataSource {
 
     private var reminderServiceData: LinkedHashMap<String, ReminderDTO> = LinkedHashMap()
 
@@ -32,6 +32,5 @@ class ReminderFakeRepository : ReminderDataSource {
     override suspend fun deleteAllReminders() {
         reminderServiceData.clear()
     }
-
 
 }

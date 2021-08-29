@@ -39,6 +39,11 @@ class RemindersLocalRepository(
             remindersDao.saveReminder(reminder)
         }
 
+    suspend fun saveReminders(vararg reminder: ReminderDTO) =
+        withContext(ioDispatcher) {
+            remindersDao.saveReminders(*reminder)
+        }
+
     /**
      * Get a reminder by its id
      * @param id to be used to get the reminder
