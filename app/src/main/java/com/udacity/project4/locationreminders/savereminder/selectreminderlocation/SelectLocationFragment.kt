@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.Bundle
 import android.view.*
 import androidx.annotation.RawRes
@@ -29,6 +30,7 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
@@ -40,7 +42,9 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     override val viewModel by sharedViewModel<SaveReminderViewModel>()
 
     //Use Koin to get the view model of the SaveReminder
-    private lateinit var googleMap: GoogleMap
+    lateinit var googleMap: GoogleMap
+    var isMapReady: CompletableDeferred<Boolean> = CompletableDeferred()
+    lateinit var mapFragment: SupportMapFragment
     private lateinit var geofencingClient: GeofencingClient
     private lateinit var binding: FragmentSelectLocationBinding
 
@@ -64,8 +68,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         setDisplayHomeAsUpEnabled(true)
 
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
-        val mapFragment = childFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
+        mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
         return binding.root
     }
@@ -120,18 +123,23 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         this.googleMap = map
         setMapStyle(R.raw.mapstyles01)
         viewModel.currentPOI.observe(viewLifecycleOwner) {
-            it?.let {
-                gotoPoi(it)
-                setMarker(it.latLng, it.name)?.showInfoWindow()
-            }
+            it?.run { onUpdatePoi(this) }
         }
-        googleMap.setOnPoiClickListener { poi ->
-            viewModel.currentPOI.value = poi
-        }
-        lifecycleScope.launch {
+        googleMap.setOnPoiClickListener(::onClickPoi)
+        lifecycleScope.launchWhenStarted {
             val isGranted = parentActivity.enableLocationService()
             if (isGranted) enableMyLocation()
         }
+        isMapReady.complete(true)
+    }
+
+    fun onClickPoi(poi: PointOfInterest) {
+        viewModel.currentPOI.value = poi
+    }
+
+    private fun onUpdatePoi(poi: PointOfInterest) {
+        gotoPoi(poi)
+        setMarker(poi.latLng, poi.name)?.showInfoWindow()
     }
 
     private fun setMapStyle(@RawRes resId: Int) {
@@ -212,10 +220,11 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     private suspend fun requestLocationPermission(): Boolean =
         parentActivity.requestForPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
 
-    private fun isPermissionGranted(): Boolean = ActivityCompat.checkSelfPermission(
-        requireContext(),
-        Manifest.permission.ACCESS_FINE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+    private fun isPermissionGranted(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+            ActivityCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
         requireContext(),
         Manifest.permission.ACCESS_COARSE_LOCATION
     ) == PackageManager.PERMISSION_GRANTED

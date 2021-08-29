@@ -24,10 +24,11 @@ abstract class BaseActivity : AppCompatActivity() {
     @get:IdRes
     abstract val navHostId: Int
 
-    protected val navHostFragment by lazy { supportFragmentManager.findFragmentById(navHostId) as NavHostFragment }
+    val navHostFragment by lazy { supportFragmentManager.findFragmentById(navHostId) as NavHostFragment }
     protected val navController get() = navHostFragment.navController
 
-    private val resolutionForResult = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult ->
+    private val resolutionForResult =
+        registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { activityResult ->
             if (activityResult.resultCode == RESULT_OK) {
                 resolutionRequestCompletable.complete(true)
                 //startLocationUpdates() or do whatever you want
@@ -52,11 +53,12 @@ abstract class BaseActivity : AppCompatActivity() {
     private val permissionMutex = Mutex()
     private val resolutionMutex = Mutex()
 
-    suspend fun requestForPermissions(vararg permissions: String): Boolean = permissionMutex.withLock {
-        permissionRequestCompletable = CompletableDeferred()
-        permissionResultLauncher.launch(arrayOf(*permissions))
-        return permissionRequestCompletable.await()
-    }
+    suspend fun requestForPermissions(vararg permissions: String): Boolean =
+        permissionMutex.withLock {
+            permissionRequestCompletable = CompletableDeferred()
+            permissionResultLauncher.launch(arrayOf(*permissions))
+            return permissionRequestCompletable.await()
+        }
 
     private suspend fun Status.resolutionForResult(): Boolean = resolutionMutex.withLock {
         return@withLock this.resolution?.let {
@@ -76,11 +78,11 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
-        val foregroundLocationApproved =
-            PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
+        val foregroundLocationApproved = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
         val backgroundPermissionApproved =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
                 this,

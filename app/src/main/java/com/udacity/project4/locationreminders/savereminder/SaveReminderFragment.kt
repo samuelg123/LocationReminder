@@ -21,6 +21,7 @@ import com.udacity.project4.databinding.FragmentSaveReminderBinding
 import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import com.udacity.project4.utils.wrapEspressoIdlingResource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel

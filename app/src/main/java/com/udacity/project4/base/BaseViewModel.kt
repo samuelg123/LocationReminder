@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import com.udacity.project4.utils.SingleLiveEvent
+import com.udacity.project4.utils.wrapEspressoIdlingResource
 
 /**
  * Base class for View Models to declare the common LiveData objects in one place
@@ -18,12 +19,13 @@ abstract class BaseViewModel(app: Application) : AndroidViewModel(app) {
     val showLoading: SingleLiveEvent<Boolean> = SingleLiveEvent()
     val showNoData: MutableLiveData<Boolean> = MutableLiveData()
 
-    protected suspend inline fun <T> loading(crossinline task: suspend () -> T): T {
-        try {
-            showLoading.value = true
-            return task.invoke()
-        } finally {
-            showLoading.value = false
+    protected suspend inline fun <T> loading(crossinline task: suspend () -> T): T =
+        wrapEspressoIdlingResource {
+            try {
+                showLoading.value = true
+                task.invoke()
+            } finally {
+                showLoading.value = false
+            }
         }
-    }
 }

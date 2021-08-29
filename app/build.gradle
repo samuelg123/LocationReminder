@@ -81,6 +81,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
     implementation 'com.google.firebase:firebase-auth-ktx:21.0.1'
     implementation 'com.firebaseui:firebase-ui-auth:8.0.0'
+    implementation 'androidx.test.espresso:espresso-idling-resource:3.4.0'
 
 
     // Architecture Components
@@ -130,6 +131,7 @@ dependencies {
     androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutinesVersion"
     androidTestImplementation "androidx.test:runner:$androidXTestRulesVersion"
     androidTestImplementation "androidx.test:rules:$androidXTestRulesVersion"
+    androidTestImplementation "androidx.test.uiautomator:uiautomator:$androidXUiAutomator"
     androidTestImplementation "androidx.room:room-testing:$roomVersion"
     androidTestImplementation "androidx.arch.core:core-testing:$archTestingVersion"
     androidTestImplementation "androidx.navigation:navigation-testing:$navigationVersion"
