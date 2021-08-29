@@ -1,6 +1,7 @@
 # Instruction
 
 Put MAPS_API_KEY=<your api key> inside local.properties
+Put google-services.json inside folder app
 
 # Location Reminder
 
@@ -46,9 +47,32 @@ Explain what each test does and why
 
 ```
 1.androidTest
-        //TODO: Students explain their testing here.
+  - RemindersDaoTest
+      a) saveReminders_getReminderByIdEqualToInput :
+      b) saveReminders_getRemindersIsNotEmpty :
+      c) deleteReminders_getRemindersIsEmpty : 
+        
+  - RemindersLocalRepositoryTest
+      a) saveReminders_getReminderByIdIsEqualToInput : 
+      b) deleteReminders_getRemindersIsEmpty : 
+    
+  - RemindersActivityTest
+      a) addNewReminder : 
+        
+  - RemindersListFragmentTest
+      a) clickAddReminderFAB_navigateToSaveReminderFragment : 
+      b) clickReminderItem_navigateToReminderDescriptionActivity : 
+        
 2. test
-        //TODO: Students explain their testing here.
+  - SaveReminderViewModelTest
+        a) `GIVEN correct data WHEN validate entered data THEN result is true` : 
+        b) `GIVEN incorrect data WHEN validate entered data THEN result is false` : 
+        c) `GIVEN input data WHEN save reminder THEN result data is equal to input data` :
+        d) `GIVEN POI data WHEN commit POI THEN coordinates and location name is equal POI data` : 
+        e) `GIVEN selected data WHEN on clear data THEN data cleared` : 
+        
+  - RemindersListViewModelTest
+        a) `WHEN load reminders THEN value is not empty`
 ```
 
 ## Project Instructions
