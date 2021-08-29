@@ -48,32 +48,32 @@ Explain what each test does and why
 
 ```
 1.androidTest
-  - RemindersDaoTest
-      a) saveReminders_getReminderByIdEqualToInput :
-      b) saveReminders_getRemindersIsNotEmpty :
-      c) deleteReminders_getRemindersIsEmpty : 
+  - RemindersDaoTest (SmallTest)
+      a) saveReminders_getReminderByIdEqualToInput : Given reminders dao when save reminders then check reminder is equal to input
+      b) saveReminders_getRemindersIsNotEmpty : Given reminders dao when save reminders then check reminders is not empty
+      c) deleteReminders_getRemindersIsEmpty : Given reminders dao when delete all reminders then check reminders is empty
         
-  - RemindersLocalRepositoryTest
-      a) saveReminders_getReminderByIdIsEqualToInput : 
-      b) deleteReminders_getRemindersIsEmpty : 
-    
-  - RemindersActivityTest
-      a) addNewReminder : 
+  - RemindersLocalRepositoryTest (MediumTest)
+      a) saveReminders_getReminderByIdIsEqualToInput : Given reminders local repository when save reminders then check reminder is equal to input
+      b) deleteReminders_getRemindersIsEmpty : Given reminders local repository when delete all reminders then check reminders is empty
         
-  - RemindersListFragmentTest
-      a) clickAddReminderFAB_navigateToSaveReminderFragment : 
-      b) clickReminderItem_navigateToReminderDescriptionActivity : 
+  - RemindersListFragmentTest (MediumTest)
+      a) clickAddReminderFAB_navigateToSaveReminderFragment : Given reminders list fragment when click add reminder then navigate to savereminder
+      b) clickReminderItem_navigateToReminderDescriptionActivity : Given reminders list fragment when click add reminder then navigate to description activity
+        
+  - RemindersActivityTest (LargeTest)
+      a) addNewReminder : Given reminders activity when add new reminder then recyclerview is not empty
         
 2. test
   - SaveReminderViewModelTest
-        a) `GIVEN correct data WHEN validate entered data THEN result is true` : 
-        b) `GIVEN incorrect data WHEN validate entered data THEN result is false` : 
-        c) `GIVEN input data WHEN save reminder THEN result data is equal to input data` :
-        d) `GIVEN POI data WHEN commit POI THEN coordinates and location name is equal POI data` : 
-        e) `GIVEN selected data WHEN on clear data THEN data cleared` : 
+        a) `GIVEN correct data WHEN validate entered data THEN result is true`
+        b) `GIVEN incorrect data WHEN validate entered data THEN result is false`
+        c) `GIVEN input data WHEN save reminder THEN result data is equal to input data`
+        d) `GIVEN POI data WHEN commit POI THEN coordinates and location name is equal POI data`
+        e) `GIVEN selected data WHEN on clear data THEN data cleared`
         
   - RemindersListViewModelTest
-        a) `WHEN load reminders THEN value is not empty` : 
+        a) `WHEN load reminders THEN value is not empty`
 ```
 
 ## Project Instructions
