@@ -41,7 +41,7 @@ class ReminderListFragment : BaseFragment<RemindersListViewModel>() {
             viewModel.loadReminders()
         }
 
-        viewModel.showLoading.observe(this){
+        viewModel.showLoading.observe(this) {
             binding.refreshLayout.isRefreshing = it
         }
 
@@ -58,15 +58,17 @@ class ReminderListFragment : BaseFragment<RemindersListViewModel>() {
         setupRecyclerView()
         activityViewModel.state.observe(viewLifecycleOwner) {
             when (it) {
-                RemindersViewModel.State.LogoutSuccess -> {
-                    val intent =
-                        Intent(requireContext(), AuthenticationActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        }
-                    startActivity(intent)
-                }
+                RemindersViewModel.State.LogoutSuccess -> gotoLogin()
             }
         }
+    }
+
+    fun gotoLogin() {
+        val intent =
+            Intent(requireContext(), AuthenticationActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+        startActivity(intent)
     }
 
     override fun onResume() {

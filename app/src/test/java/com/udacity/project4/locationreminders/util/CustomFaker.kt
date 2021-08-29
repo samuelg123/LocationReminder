@@ -29,12 +29,7 @@ private val title = arrayOf(
 )
 
 private const val lorem = "Lorem ipsum dolor sit amet, " +
-        "consectetur adipiscing elit, sed do eiusmod tempor " +
-        "incididunt ut labore et dolore magna aliqua. Laoreet " +
-        "suspendisse interdum consectetur libero id faucibus. " +
-        "Facilisis sed odio morbi quis commodo odio aenean sed. " +
-        "Tortor aliquam nulla facilisi cras. A diam maecenas sed " +
-        "enim. Vel pharetra vel turpis nunc eget lorem."
+        "consectetur adipiscing elit, sed do eiusmod tempor "
 
 fun generatePlace(): String {
     val i: Int = places.indices.random()

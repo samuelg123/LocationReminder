@@ -1,34 +1,30 @@
 package com.udacity.project4.locationreminders.reminderslist
 
 import android.os.Bundle
-import android.view.View
 import androidx.fragment.app.testing.launchFragmentInContainer
 import androidx.navigation.NavController
 import androidx.navigation.Navigation
-import androidx.recyclerview.widget.RecyclerView
-import androidx.test.espresso.Espresso.onData
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
-import androidx.test.espresso.intent.matcher.BundleMatchers.hasEntry
-import androidx.test.espresso.matcher.BoundedMatcher
+import androidx.test.espresso.contrib.RecyclerViewActions
+import androidx.test.espresso.intent.Intents
+import androidx.test.espresso.intent.Intents.intended
+import androidx.test.espresso.intent.matcher.IntentMatchers.hasComponent
 import androidx.test.espresso.matcher.ViewMatchers
-import androidx.test.espresso.matcher.ViewMatchers.hasChildCount
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseTest
+import com.udacity.project4.base.DataBindingViewHolder
+import com.udacity.project4.locationreminders.ReminderDescriptionActivity
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.local.RemindersDatabase
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.test.runBlockingTest
-import org.hamcrest.CoreMatchers.*
-import org.hamcrest.Description
-import org.hamcrest.Matcher
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -37,7 +33,6 @@ import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
-import java.util.EnumSet.allOf
 
 @RunWith(AndroidJUnit4::class)
 @ExperimentalCoroutinesApi
@@ -86,16 +81,27 @@ class ReminderListFragmentTest : BaseTest() {
     }
 
     @Test
-    fun saveReminders_showNewData() {
+    fun clickReminderItem_navigateToReminderDescriptionActivity() {
         runBlocking {
-            //WHEN
             repository.saveReminders(*reminders.toTypedArray())
+            Intents.init()
             launchFragmentInContainer<ReminderListFragment>(Bundle.EMPTY, R.style.AppTheme)
 
-            //THEN
+            //WHEN
+            val lastReminder = reminders.lastIndex
             onView(withId(R.id.reminderssRecyclerView))
                 .check(matches(ViewMatchers.isDisplayed()))
                 .check(RecyclerViewItemCountAssertion(reminders.size))
+                .perform(
+                    RecyclerViewActions.actionOnItemAtPosition<DataBindingViewHolder<ReminderDTO>>(
+                        lastReminder,
+                        click()
+                    )
+                )
+
+            //THEN
+            intended(hasComponent(ReminderDescriptionActivity::class.java.name))
+            Intents.release()
         }
     }
 }
