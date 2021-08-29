@@ -1,6 +1,7 @@
 # Instruction
 
 Put MAPS_API_KEY=<your api key> inside local.properties
+
 Put google-services.json inside folder app
 
 # Location Reminder
@@ -72,7 +73,7 @@ Explain what each test does and why
         e) `GIVEN selected data WHEN on clear data THEN data cleared` : 
         
   - RemindersListViewModelTest
-        a) `WHEN load reminders THEN value is not empty`
+        a) `WHEN load reminders THEN value is not empty` : 
 ```
 
 ## Project Instructions
