@@ -19,13 +19,11 @@ abstract class BaseViewModel(app: Application) : AndroidViewModel(app) {
     val showLoading: SingleLiveEvent<Boolean> = SingleLiveEvent()
     val showNoData: MutableLiveData<Boolean> = MutableLiveData()
 
-    protected suspend inline fun <T> loading(crossinline task: suspend () -> T): T =
-        wrapEspressoIdlingResource {
-            try {
-                showLoading.value = true
-                task.invoke()
-            } finally {
-                showLoading.value = false
-            }
+    protected suspend fun <T> loading(task: suspend () -> T): T =
+        try {
+            showLoading.value = true
+            task.invoke()
+        } finally {
+            showLoading.value = false
         }
 }
