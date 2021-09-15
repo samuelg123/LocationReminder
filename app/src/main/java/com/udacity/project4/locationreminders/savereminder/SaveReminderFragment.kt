@@ -8,7 +8,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.databinding.DataBindingUtil
-import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingClient
@@ -21,7 +20,6 @@ import com.udacity.project4.databinding.FragmentSaveReminderBinding
 import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
-import com.udacity.project4.utils.wrapEspressoIdlingResource
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
@@ -76,20 +74,8 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         }
 
         binding.saveReminder.setOnClickListener {
-            val title = viewModel.reminderTitle.value
-            val description = viewModel.reminderDescription.value
-            val location = viewModel.reminderSelectedLocationStr.value
-            val latitude = viewModel.latitude.value
-            val longitude = viewModel.longitude.value
-
+            val reminderData = viewModel.reminderDataItem.value ?: return@setOnClickListener
             lifecycleScope.launchWhenStarted {
-                val reminderData = ReminderDataItem(
-                    title,
-                    description,
-                    location,
-                    latitude,
-                    longitude
-                )
                 if (startGeofence(reminderData)) {
                     viewModel.validateAndSaveReminder(reminderData)
                 }

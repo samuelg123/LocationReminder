@@ -4,10 +4,12 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.content.res.Resources
+import android.location.Address
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.*
 import androidx.annotation.RawRes
 import androidx.core.app.ActivityCompat
@@ -36,6 +38,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
+import android.location.Geocoder
+import java.lang.StringBuilder
+import java.util.*
+
 
 class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReadyCallback {
 
@@ -67,6 +73,8 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(true)
 
+        viewModel.loadReminderDataItem()
+
         geofencingClient = LocationServices.getGeofencingClient(requireActivity())
         mapFragment = childFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
@@ -74,12 +82,12 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     override fun onDestroy() {
-        viewModel.clearCurrentPoi()
+        viewModel.clearCurrentLocation()
         super.onDestroy()
     }
 
     fun onLocationSelected() {
-        viewModel.commitPoi()
+        viewModel.commitLocation()
         findNavController().navigateUp()
     }
 
@@ -122,24 +130,50 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     override fun onMapReady(map: GoogleMap) {
         this.googleMap = map
         setMapStyle(R.raw.mapstyles01)
-        viewModel.currentPOI.observe(viewLifecycleOwner) {
-            it?.run { onUpdatePoi(this) }
-        }
+
+        googleMap.setOnMapClickListener(::onClickMap)
+
         googleMap.setOnPoiClickListener(::onClickPoi)
+
         lifecycleScope.launchWhenStarted {
-            val isGranted = parentActivity.enableLocationService()
-            if (isGranted) enableMyLocation()
+
+            enableMyLocation()
+
+        }
+        viewModel.tempDataItem.observe(viewLifecycleOwner) {
+            it?.run {
+                latitude?.let { lat ->
+                    longitude?.let { lng ->
+                        onUpdateLocation(
+                            it.location ?: getString(R.string.unknown_location),
+                            LatLng(lat, lng)
+                        )
+                    }
+                }
+            }
         }
         isMapReady.complete(true)
     }
 
-    fun onClickPoi(poi: PointOfInterest) {
-        viewModel.currentPOI.value = poi
+    fun onClickMap(latLng: LatLng) {
+        viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+            latitude = latLng.latitude,
+            longitude = latLng.longitude,
+            location = getString(R.string.custom_location),
+        )
     }
 
-    private fun onUpdatePoi(poi: PointOfInterest) {
-        gotoPoi(poi)
-        setMarker(poi.latLng, poi.name)?.showInfoWindow()
+    fun onClickPoi(poi: PointOfInterest) {
+        viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+            latitude = poi.latLng.latitude,
+            longitude = poi.latLng.longitude,
+            location = poi.name
+        )
+    }
+
+    private fun onUpdateLocation(name: String, latLng: LatLng) {
+        gotoLocation(latLng)
+        setMarker(latLng, name)?.showInfoWindow()
     }
 
     private fun setMapStyle(@RawRes resId: Int) {
@@ -160,33 +194,25 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     private suspend fun gotoMyLocation() {
-        getLastLocation()?.run {
-            val homeLatLng = LatLng(latitude, longitude)
-            withContext(Dispatchers.Main) {
-                googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeLatLng, 15F))
-            }
+        val lastLocation = getLastLocation() ?: return
+        val homeLatLng = LatLng(lastLocation.latitude, lastLocation.longitude)
+        withContext(Dispatchers.Main) {
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeLatLng, 15F))
         }
     }
 
-    private fun gotoPoi(poi: PointOfInterest) {
-        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(poi.latLng, 15F))
+    private fun gotoLocation(latLng: LatLng) {
+        googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15F))
     }
 
     @SuppressLint("MissingPermission")
     private suspend fun getLastLocation(): Location? {
-        if (!isPermissionGranted()) requestLocationPermission()
         if (isPermissionGranted() && isLocationEnabled()) {
             return fusedLocationClient.getCurrentLocation(
                 PRIORITY_HIGH_ACCURACY,
                 cancellationTokenSource.token
-            )  // or .lastLocation
-                .asDeferred()
-                .await()
+            ).asDeferred().await()
         }
-//            else {
-//                val intent = Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-//                startActivity(intent)
-//            }
         return null
     }
 
@@ -203,22 +229,22 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun enableMyLocation() {
+    private suspend fun enableMyLocation() = withContext(Dispatchers.Main) {
         var isGranted = isPermissionGranted()
-        if (!isGranted) {
-            isGranted = requestLocationPermission()
-            if (!isGranted) return
+        if (!isGranted) isGranted = requestLocationPermission()
+        if (isGranted) parentActivity.enableLocationService() else return@withContext
+        viewModel.tempDataItem.value?.run {
+            if (latitude == null || longitude == null) gotoMyLocation()
         }
-        if (viewModel.currentPOI.value == null) {
-            gotoMyLocation()
-        }
-        withContext(Dispatchers.Main) {
-            googleMap.isMyLocationEnabled = true
-        }
+        googleMap.isMyLocationEnabled = true
     }
 
+
     private suspend fun requestLocationPermission(): Boolean =
-        parentActivity.requestForPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+        parentActivity.requestForPermissions(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
 
     private fun isPermissionGranted(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
             ActivityCompat.checkSelfPermission(

@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <data>
+
         <variable
             name="fragment"
             type="com.udacity.project4.locationreminders.savereminder.selectreminderlocation.SelectLocationFragment" />
@@ -31,7 +32,7 @@
             style="@style/MaterialButton.Accent"
             android:layout_width="0dp"
             android:layout_height="60dp"
-            android:enabled="@{viewModel.currentPOI != null}"
+            android:enabled="@{viewModel.reminderDataItem.latitude != null &amp;&amp; viewModel.reminderDataItem.longitude != null}"
             android:onClick="@{(v)->fragment.onLocationSelected()}"
             android:text="@string/save"
             app:elevation="0dp"

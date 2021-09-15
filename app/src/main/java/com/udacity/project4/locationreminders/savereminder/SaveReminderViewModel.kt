@@ -3,49 +3,43 @@ package com.udacity.project4.locationreminders.savereminder
 import android.app.Application
 import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.PointOfInterest
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
-import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 
 class SaveReminderViewModel(
     app: Application,
     private val dataSource: ReminderDataSource
 ) : BaseViewModel(app) {
-    val reminderTitle = MutableLiveData<String>()
-    val reminderDescription = MutableLiveData<String>()
-    val reminderSelectedLocationStr = MutableLiveData<String>()
-    val latitude = MutableLiveData<Double?>()
-    val longitude = MutableLiveData<Double?>()
-    val currentPOI = MutableLiveData<PointOfInterest?>()
-    private var currentMarker: Marker? = null
-    private var selectedPOI: PointOfInterest? = null
-    var isPoiCommitted: Boolean = false
+    val reminderDataItem = MutableLiveData(ReminderDataItem())
+
+    //Google Map
+    val tempDataItem = MutableLiveData<ReminderDataItem?>()
+    private var tempMarker: Marker? = null
+    var isMapLocationSaved: Boolean = false
+
+    fun loadReminderDataItem() {
+        tempDataItem.value = reminderDataItem.value
+    }
 
     fun setMarker(marker: Marker?) {
-        currentMarker?.remove()
-        currentMarker = marker
+        tempMarker?.remove()
+        tempMarker = marker
     }
 
-    fun commitPoi() {
-        selectedPOI = currentPOI.value
-        selectedPOI?.run {
-            longitude.value = latLng.longitude
-            latitude.value = latLng.latitude
-            reminderSelectedLocationStr.value = name
-        }
-        isPoiCommitted = true
+    fun commitLocation() {
+        reminderDataItem.value = tempDataItem.value
+        isMapLocationSaved = true
     }
 
-    fun clearCurrentPoi() {
-        if (!isPoiCommitted) {
-            currentPOI.value = null
+    fun clearCurrentLocation() {
+        if (!isMapLocationSaved) {
+            tempDataItem.value = null
         } else {
-            isPoiCommitted = false
+            isMapLocationSaved = false
         }
     }
 
@@ -53,14 +47,9 @@ class SaveReminderViewModel(
      * Clear the live data objects to start fresh next time the view model gets called
      */
     fun onClear() {
-        reminderTitle.value = ""
-        reminderDescription.value = ""
-        reminderSelectedLocationStr.value = ""
-        currentPOI.value = null
-        latitude.value = null
-        longitude.value = null
-        currentMarker = null
-        selectedPOI = null
+        reminderDataItem.value = ReminderDataItem()
+        tempDataItem.value = null
+        tempMarker = null
     }
 
     /**

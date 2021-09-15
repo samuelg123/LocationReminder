@@ -48,5 +48,7 @@
     <string name="geofences_not_removed">Geofences not removed.</string>
     <string name="insufficient_permissions">Insufficient permissions.</string>
     <string name="geofence_error">There was an error in finding your treasure</string>
+    <string name="unknown_location">Unknown Location</string>
+    <string name="custom_location">Custom Location</string>
 
 </resources>

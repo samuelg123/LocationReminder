@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.IntentSender
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
@@ -38,14 +39,8 @@ abstract class BaseActivity : AppCompatActivity() {
         }
 
     private val permissionResultLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            for ((_, isGranted) in result) {
-                if (!isGranted) {
-                    permissionRequestCompletable.complete(false)
-                    return@registerForActivityResult
-                }
-            }
-            permissionRequestCompletable.complete(true)
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+            permissionRequestCompletable.complete(result)
         }
 
     private lateinit var permissionRequestCompletable: CompletableDeferred<Boolean>
@@ -53,11 +48,14 @@ abstract class BaseActivity : AppCompatActivity() {
     private val permissionMutex = Mutex()
     private val resolutionMutex = Mutex()
 
-    suspend fun requestForPermissions(vararg permissions: String): Boolean =
+    suspend fun requestForPermissions(vararg permission: String): Boolean =
         permissionMutex.withLock {
-            permissionRequestCompletable = CompletableDeferred()
-            permissionResultLauncher.launch(arrayOf(*permissions))
-            return permissionRequestCompletable.await()
+            for (p in permission) {
+                permissionRequestCompletable = CompletableDeferred()
+                permissionResultLauncher.launch(p)
+                if (!permissionRequestCompletable.await()) return@withLock false
+            }
+            return@withLock true
         }
 
     private suspend fun Status.resolutionForResult(): Boolean = resolutionMutex.withLock {
@@ -72,6 +70,8 @@ abstract class BaseActivity : AppCompatActivity() {
                 false
             } catch (e: ClassCastException) {
                 // Ignore, should be an impossible error.
+                false
+            } catch (e: Throwable){
                 false
             }
         } ?: false
@@ -111,19 +111,18 @@ abstract class BaseActivity : AppCompatActivity() {
         val settingsBuilder = LocationSettingsRequest.Builder()
             .addLocationRequest(locationRequest)
             .setAlwaysShow(true)
-        var states: LocationSettingsStates? = null
-
-        suspend fun locationSettings() =
-            LocationServices.getSettingsClient(this)
-                .checkLocationSettings(settingsBuilder.build()).asDeferred().await()
+        var isGranted = false
 
         try {
-            states = locationSettings().locationSettingsStates
-        } catch (ex: ApiException) {
+            val locationSettings =
+                LocationServices.getSettingsClient(this)
+                    .checkLocationSettings(settingsBuilder.build())
+                    .asDeferred().await()
+            isGranted = true
+        } catch (ex: ResolvableApiException) {
             when (ex.statusCode) {
                 LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
-                    val isGranted = ex.status.resolutionForResult()
-                    if (isGranted) states = locationSettings().locationSettingsStates
+                     isGranted = ex.status.resolutionForResult()
                 }
                 LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
                     /* no-op */
@@ -136,7 +135,7 @@ abstract class BaseActivity : AppCompatActivity() {
         } catch (e: ResolvableApiException) {
             /* no-op */
         }
-        return states?.isGpsUsable == true
+        return isGranted
     }
 
 }

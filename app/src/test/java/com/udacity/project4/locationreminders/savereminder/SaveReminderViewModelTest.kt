@@ -1,8 +1,6 @@
 package com.udacity.project4.locationreminders.savereminder
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.PointOfInterest
 import com.google.common.truth.Truth.assertThat
 import com.udacity.project4.locationreminders.base.BaseTest
 import com.udacity.project4.locationreminders.data.ReminderFakeDataSource
@@ -16,7 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.test.inject
-import java.util.*
+import kotlin.test.assertFails
 
 @ExperimentalCoroutinesApi
 @RunWith(AndroidJUnit4::class)
@@ -114,37 +112,9 @@ class SaveReminderViewModelTest : BaseTest() {
         }
 
     @Test
-    fun `GIVEN POI data WHEN commit POI THEN coordinates and location name is equal POI data`() {
-        // GIVEN data
+    fun `GIVEN chosen location data WHEN commit location THEN coordinates and location name is equal to location data`() {
+        // GIVEN chosen location data
         val coordinates = generateRandomCoordinates()
-        val poi = PointOfInterest(
-            LatLng(coordinates.latitude, coordinates.longitude),
-            UUID.randomUUID().toString(),
-            generatePlace(),
-        )
-        saveReminderViewModel.currentPOI.value = poi
-
-        // WHEN save reminder
-        saveReminderViewModel.commitPoi()
-
-        // THEN result data is equal to poi data
-        saveReminderViewModel.run {
-            assertThat(latitude.getOrAwaitValue()).isEqualTo(poi.latLng.latitude)
-            assertThat(longitude.getOrAwaitValue()).isEqualTo(poi.latLng.longitude)
-            assertThat(reminderSelectedLocationStr.getOrAwaitValue()).isEqualTo(poi.name)
-            assertThat(isPoiCommitted).isTrue()
-        }
-    }
-
-    @Test
-    fun `GIVEN selected data WHEN on clear data THEN data cleared`() {
-        // GIVEN selected data
-        val coordinates = generateRandomCoordinates()
-        val poi = PointOfInterest(
-            LatLng(coordinates.latitude, coordinates.longitude),
-            UUID.randomUUID().toString(),
-            generatePlace(),
-        )
         val input = ReminderDataItem(
             title = generateTitle(),
             description = generateDescription(),
@@ -152,26 +122,41 @@ class SaveReminderViewModelTest : BaseTest() {
             latitude = coordinates.latitude,
             longitude = coordinates.longitude,
         )
-        saveReminderViewModel.apply {
-            reminderTitle.value = input.title
-            reminderDescription.value = input.description
-            reminderSelectedLocationStr.value = input.location
-            currentPOI.value = poi
-            latitude.value = input.latitude
-            longitude.value = input.longitude
+        saveReminderViewModel.tempDataItem.value = input
+
+        // WHEN save reminder
+        saveReminderViewModel.commitLocation()
+
+        // THEN result data is equal to chosen location data
+        saveReminderViewModel.run {
+            reminderDataItem.getOrAwaitValue()?.run {
+                assertThat(latitude).isEqualTo(input.latitude)
+                assertThat(longitude).isEqualTo(input.longitude)
+                assertThat(location).isEqualTo(input.location)
+            } ?: assertFails("reminderDataItem is null") {}
+            assertThat(isMapLocationSaved).isTrue()
         }
+    }
+
+    @Test
+    fun `GIVEN selected data WHEN on clear data THEN data cleared`() {
+        // GIVEN selected data
+        val coordinates = generateRandomCoordinates()
+        val input = ReminderDataItem(
+            title = generateTitle(),
+            description = generateDescription(),
+            location = generatePlace(),
+            latitude = coordinates.latitude,
+            longitude = coordinates.longitude,
+        )
+        saveReminderViewModel.reminderDataItem.value = input
+
+        saveReminderViewModel.loadReminderDataItem()
 
         // WHEN on clear data
         saveReminderViewModel.onClear()
 
-        // THEN result data is empty
-        saveReminderViewModel.run {
-            assertThat(reminderTitle.getOrAwaitValue()).isEmpty()
-            assertThat(reminderDescription.getOrAwaitValue()).isEmpty()
-            assertThat(reminderSelectedLocationStr.getOrAwaitValue()).isEmpty()
-            assertThat(currentPOI.getOrAwaitValue()).isNull()
-            assertThat(latitude.getOrAwaitValue()).isNull()
-            assertThat(longitude.getOrAwaitValue()).isNull()
-        }
+        // THEN result data is null
+        assertThat(saveReminderViewModel.reminderDataItem.getOrAwaitValue()).isNull()
     }
 }
