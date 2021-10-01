@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.*
 import androidx.annotation.RawRes
+import androidx.annotation.VisibleForTesting
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat.getSystemService
 import androidx.databinding.DataBindingUtil
@@ -28,7 +29,9 @@ import com.google.android.gms.tasks.CancellationTokenSource
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
+import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
+import com.udacity.project4.utils.EspressoIdlingResource
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import com.udacity.project4.utils.toast
 import kotlinx.coroutines.CompletableDeferred
@@ -54,6 +57,8 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         LocationServices.getFusedLocationProviderClient(requireContext())
     }
     private var cancellationTokenSource = CancellationTokenSource()
+
+    val onSelectedCompleter = CompletableDeferred<Boolean>()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -132,9 +137,10 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         googleMap.setOnPoiClickListener(::onClickPoi)
 
         lifecycleScope.launchWhenStarted {
-
             enableMyLocation()
-
+        }
+        viewModel.latLngCheck.observe(viewLifecycleOwner) {
+            onSelectedCompleter.complete(it)
         }
         viewModel.tempDataItem.observe(viewLifecycleOwner) {
             it?.run {
@@ -169,6 +175,10 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
             return
         }
         viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+            latitude = poi.latLng.latitude,
+            longitude = poi.latLng.longitude,
+            location = poi.name
+        ) ?: ReminderDataItem(
             latitude = poi.latLng.latitude,
             longitude = poi.latLng.longitude,
             location = poi.name
@@ -235,7 +245,9 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     @SuppressLint("MissingPermission")
     private suspend fun enableMyLocation() = withContext(Dispatchers.Main) {
         viewModel.permissionGranted = isPermissionGranted()
-        if (!viewModel.permissionGranted) viewModel.permissionGranted = requestLocationPermission()
+        if (!viewModel.permissionGranted) {
+            viewModel.permissionGranted = requestLocationPermission()
+        }
         if (viewModel.permissionGranted) {
             viewModel.locationEnabled = parentActivity.enableLocationService()
             if (!viewModel.locationEnabled) {
@@ -253,10 +265,16 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     private suspend fun requestLocationPermission(): Boolean =
-        parentActivity.requestForPermissions(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            var permissions = arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                permissions += Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            }
+            parentActivity.requestForPermissions(*permissions)
+        } else true
 
     private fun isPermissionGranted(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
             ActivityCompat.checkSelfPermission(

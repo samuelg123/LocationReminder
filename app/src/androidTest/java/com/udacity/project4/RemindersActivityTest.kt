@@ -2,6 +2,7 @@ package com.udacity.project4
 
 import android.app.Activity
 import android.app.Application
+import android.content.res.Resources
 import android.graphics.Rect
 import androidx.navigation.fragment.NavHostFragment
 import androidx.test.core.app.ActivityScenario
@@ -12,12 +13,16 @@ import androidx.test.espresso.ViewInteraction
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.contrib.RecyclerViewActions
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import androidx.test.espresso.matcher.ViewMatchers.*
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
+import androidx.test.uiautomator.UiObjectNotFoundException
+import androidx.test.uiautomator.UiSelector
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.PointOfInterest
 import com.udacity.project4.base.DataBindingViewHolder
@@ -26,14 +31,12 @@ import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.data.local.RemindersLocalRepository
 import com.udacity.project4.locationreminders.savereminder.selectreminderlocation.SelectLocationFragment
 import com.udacity.project4.modules.loadKoinTestModules
-import com.udacity.project4.util.DataBindingIdlingResource
-import com.udacity.project4.util.RecyclerViewItemCountAssertion
-import com.udacity.project4.util.atPosition
-import com.udacity.project4.util.monitorActivity
+import com.udacity.project4.util.*
 import com.udacity.project4.utils.EspressoIdlingResource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.hamcrest.CoreMatchers.not
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -41,11 +44,6 @@ import org.junit.runner.RunWith
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 import java.util.*
-import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
-import androidx.test.espresso.matcher.RootMatchers.withDecorView
-import org.hamcrest.core.IsNot.not
-import androidx.test.uiautomator.UiSelector
-import androidx.test.uiautomator.UiObjectNotFoundException
 
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 18) // Minimum SDK supported by UI Automator
@@ -57,6 +55,8 @@ class RemindersActivityTest :
     private val app: Application = ApplicationProvider.getApplicationContext()
     private lateinit var device: UiDevice
     private lateinit var repository: RemindersLocalRepository
+    private lateinit var resources: Resources
+
     private val dataBindingIdlingResource = DataBindingIdlingResource()
 
     /**
@@ -68,8 +68,8 @@ class RemindersActivityTest :
         loadKoinTestModules(app)
         // Initialize UiDevice instance
         device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
-
         repository = get()
+        resources = InstrumentationRegistry.getInstrumentation().context.resources
 
         //clear the data to start fresh
         runBlocking {
@@ -105,8 +105,6 @@ class RemindersActivityTest :
             val activityScenario = ActivityScenario.launch(RemindersActivity::class.java)
             dataBindingIdlingResource.monitorActivity(activityScenario)
 
-            val reminderTitleInput = "Title 123"
-
             // Add new Reminder data
             onView(withId(R.id.addReminderFAB)).perform(click())
 
@@ -141,10 +139,12 @@ class RemindersActivityTest :
                 -122.08391804091225
             )
             var selectLocationFragment: SelectLocationFragment? = null
+            var activity: RemindersActivity? = null
             activityScenario.onActivity {
                 val navHostFragment: NavHostFragment = it.navHostFragment
                 selectLocationFragment =
                     navHostFragment.childFragmentManager.fragments.first() as SelectLocationFragment
+                activity = it
             }
             selectLocationFragment?.run {
                 isMapReady.await()
@@ -157,8 +157,11 @@ class RemindersActivityTest :
                             "Googleplex"
                         )
                     ) // To set POI marker
+                    onSelectedCompleter.await()
                 }
             }
+
+            onView(isRoot()).perform(waitFor(2000))
 
             // Save location
             onView(withId(R.id.save)).perform(click())
@@ -168,9 +171,10 @@ class RemindersActivityTest :
                 .check(matches(isDisplayed()))
                 .perform(click())
 
-            // Reminder saved toast
+            // Reminder saved toast (https://stackoverflow.com/a/28606603/3500752 and https://knowledge.udacity.com/questions/681846)
+            // Works on sdk < 30, fails on sdk 30 (https://github.com/android/android-test/issues/803)
             onView(withText(R.string.reminder_saved))
-                .inRoot(withDecorView(not(dataBindingIdlingResource.activity.window.decorView)))
+                .inRoot(withDecorView(not(activity?.window?.decorView)))
                 .check(matches(isDisplayed()))
 
             // Make sure recyclerview item count is equal to 1 and open detail reminder page
@@ -219,5 +223,14 @@ class RemindersActivityTest :
             do allowGpsBtn.click()
             while (allowGpsBtn.exists())
         }
+    }
+
+    fun checkPopupIsDisplayed(message: String): Boolean {
+        device.waitForIdle()
+        return device.hasObject(By.text(message))
+    }
+
+    companion object {
+        const val reminderTitleInput = "Title 123"
     }
 }

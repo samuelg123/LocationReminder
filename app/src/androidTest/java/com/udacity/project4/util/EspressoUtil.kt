@@ -14,7 +14,7 @@ import java.util.concurrent.TimeoutException
 /**
  * Wait for view to be visible
  */
-fun ViewInteraction.waitUntilVisible(timeout: Long): ViewInteraction {
+fun ViewInteraction.waitUntilVisible(timeout: Long = 3L): ViewInteraction {
     val startTime = System.currentTimeMillis()
     val endTime = startTime + timeout
 

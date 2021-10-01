@@ -76,8 +76,12 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         binding.saveReminder.setOnClickListener {
             val reminderData = viewModel.reminderDataItem.value ?: return@setOnClickListener
             lifecycleScope.launchWhenStarted {
-                if (viewModel.validateAndSaveReminder(reminderData)) {
-                    startGeofence(reminderData)
+                if (parentActivity.foregroundAndBackgroundLocationPermissionApproved() && parentActivity.isLocationEnabled()) {
+                    if (viewModel.validateAndSaveReminder(reminderData)) {
+                        startGeofence(reminderData)
+                    }
+                } else {
+                    viewModel.showSnackBarInt.value = R.string.location_required_error
                 }
             }
         }
@@ -88,15 +92,10 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     }
 
     private suspend fun startGeofence(vararg reminders: ReminderDataItem): Boolean {
-        if (
-            parentActivity.requestForegroundAndBackgroundLocationPermissions() &&
-            parentActivity.enableLocationService()
-        ) {
-            for (reminder in reminders) {
-                if (!addGeofence(reminder)) return false
-            }
-            return true
-        } else return false
+        for (reminder in reminders) {
+            if (!addGeofence(reminder)) return false
+        }
+        return true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,12 +105,8 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
 
 
     override fun onDestroy() {
+        viewModel.onClear()
         super.onDestroy()
-        lifecycleScope.launch {
-//            removeGeofences()
-            //make sure to clear the view model after destroy, as it's a single view model.
-            viewModel.onClear()
-        }
     }
 
     @SuppressLint("MissingPermission")

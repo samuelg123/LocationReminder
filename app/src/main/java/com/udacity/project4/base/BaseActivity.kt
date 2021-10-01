@@ -1,17 +1,17 @@
 package com.udacity.project4.base
 
 import android.Manifest
+import android.content.Context
 import android.content.IntentSender
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.os.Build
-import android.util.Log
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.navigation.fragment.NavHostFragment
-import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.*
@@ -39,21 +39,21 @@ abstract class BaseActivity : AppCompatActivity() {
         }
 
     private val permissionResultLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { result ->
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             permissionRequestCompletable.complete(result)
         }
 
-    private lateinit var permissionRequestCompletable: CompletableDeferred<Boolean>
+    private lateinit var permissionRequestCompletable: CompletableDeferred<MutableMap<String, Boolean>>
     private lateinit var resolutionRequestCompletable: CompletableDeferred<Boolean>
     private val permissionMutex = Mutex()
     private val resolutionMutex = Mutex()
 
     suspend fun requestForPermissions(vararg permission: String): Boolean =
         permissionMutex.withLock {
-            for (p in permission) {
-                permissionRequestCompletable = CompletableDeferred()
-                permissionResultLauncher.launch(p)
-                if (!permissionRequestCompletable.await()) return@withLock false
+            permissionRequestCompletable = CompletableDeferred()
+            permissionResultLauncher.launch(permission)
+            for ((_, isGranted) in permissionRequestCompletable.await().entries.asIterable()) {
+                if (!isGranted) return@withLock false
             }
             return@withLock true
         }
@@ -137,4 +137,8 @@ abstract class BaseActivity : AppCompatActivity() {
         return isGranted
     }
 
+    fun isLocationEnabled() : Boolean {
+        val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+    }
 }
