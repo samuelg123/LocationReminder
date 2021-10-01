@@ -44,6 +44,8 @@ import java.util.*
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.RootMatchers.withDecorView
 import org.hamcrest.core.IsNot.not
+import androidx.test.uiautomator.UiSelector
+import androidx.test.uiautomator.UiObjectNotFoundException
 
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 18) // Minimum SDK supported by UI Automator
@@ -94,8 +96,7 @@ class RemindersActivityTest :
         IdlingRegistry.getInstance().unregister(dataBindingIdlingResource)
     }
 
-
-//    TODO: add End to End testing to the app
+    //    TODO: add End to End testing to the app
     //https://stackoverflow.com/questions/29924564/using-espresso-to-unit-test-google-maps
     @Test
     fun addNewReminder() {
@@ -110,9 +111,13 @@ class RemindersActivityTest :
             onView(withId(R.id.addReminderFAB)).perform(click())
 
             // Test reminder title error message
+            onView(withId(R.id.saveReminder))
+                .check(matches(isDisplayed()))
+                .perform(click())
             onView(withId(R.id.snackbar_text))
                 .check(matches(isDisplayed()))
                 .check(matches(withText(R.string.err_enter_title)))
+
             onView(withId(R.id.reminderTitle))
                 .perform(typeText(reminderTitleInput), closeSoftKeyboard())
             onView(withId(R.id.reminderDescription))
@@ -121,6 +126,9 @@ class RemindersActivityTest :
             hideKeyboard()
 
             // Test error select location
+            onView(withId(R.id.saveReminder))
+                .check(matches(isDisplayed()))
+                .perform(click())
             onView(withId(R.id.snackbar_text))
                 .check(matches(isDisplayed()))
                 .check(matches(withText(R.string.err_select_location)))
@@ -140,6 +148,7 @@ class RemindersActivityTest :
             }
             selectLocationFragment?.run {
                 isMapReady.await()
+                tapTurnOnGpsBtn()
                 withContext(Dispatchers.Main) {
                     onClickPoi(
                         PointOfInterest(
@@ -194,5 +203,21 @@ class RemindersActivityTest :
         val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
         return if (resourceId > 0) resources.getDimensionPixelSize(resourceId)
         else Rect().apply { window.decorView.getWindowVisibleDisplayFrame(this) }.top
+    }
+
+    @Throws(UiObjectNotFoundException::class)
+    private fun tapTurnOnGpsBtn() {
+        val allowGpsBtn = device.findObject(
+            UiSelector()
+                .className("android.widget.Button").packageName("com.google.android.gms")
+                .resourceId("android:id/button1")
+                .clickable(true)
+                .checkable(false)
+        )
+        device.pressDelete()
+        if (allowGpsBtn.exists() && allowGpsBtn.isEnabled) {
+            do allowGpsBtn.click()
+            while (allowGpsBtn.exists())
+        }
     }
 }
