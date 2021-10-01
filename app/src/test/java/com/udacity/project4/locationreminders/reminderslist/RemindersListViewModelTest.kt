@@ -20,8 +20,9 @@ class RemindersListViewModelTest : BaseTest() {
     private val reminderDataSource by inject<ReminderFakeDataSource>()
     private val remindersListViewModel by inject<RemindersListViewModel>()
 
-    @Before
-    fun setup() {
+    @Test
+    fun `WHEN load reminders THEN value is not empty`() {
+        // When load reminders
         reminderDataSource.addReminders(
             *Array(10) {
                 val coordinates = generateRandomCoordinates()
@@ -34,11 +35,6 @@ class RemindersListViewModelTest : BaseTest() {
                 )
             }
         )
-    }
-
-    @Test
-    fun `WHEN load reminders THEN value is not empty`() {
-        // When load reminders
         remindersListViewModel.loadReminders()
 
         // Then reminders list is not empty
@@ -49,4 +45,32 @@ class RemindersListViewModelTest : BaseTest() {
         assertThat(value).isNotEmpty()
     }
 
+    @Test
+    fun `WHEN reminders unavailable THEN value is empty and display error`() {
+        // When reminders unavailable
+        reminderDataSource.setReturnError(true)
+        remindersListViewModel.loadReminders()
+
+        // Then reminders list is empty and display error
+        assertThat(remindersListViewModel.remindersList.value).isNull()
+        assertThat(remindersListViewModel.showSnackBar.getOrAwaitValue()).isNotEmpty()
+    }
+
+    @Test
+    fun `WHEN load reminders THEN loading shown`() {
+        // Pause dispatcher so we can verify initial values
+        mainCoroutineRule.pauseDispatcher()
+
+        // Load the task in the viewmodel
+        remindersListViewModel.loadReminders()
+
+        // Then progress indicator is shown
+        assertThat(remindersListViewModel.showLoading.getOrAwaitValue()).isTrue()
+
+        // Execute pending coroutines actions
+        mainCoroutineRule.resumeDispatcher()
+
+        // Then progress indicator is hidden
+        assertThat(remindersListViewModel.showLoading.getOrAwaitValue()).isFalse()
+    }
 }

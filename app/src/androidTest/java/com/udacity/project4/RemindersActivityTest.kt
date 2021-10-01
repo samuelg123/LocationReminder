@@ -41,7 +41,9 @@ import org.junit.runner.RunWith
 import org.koin.test.AutoCloseKoinTest
 import org.koin.test.get
 import java.util.*
-
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.RootMatchers.withDecorView
+import org.hamcrest.core.IsNot.not
 
 @RunWith(AndroidJUnit4::class)
 @SdkSuppress(minSdkVersion = 18) // Minimum SDK supported by UI Automator
@@ -94,7 +96,6 @@ class RemindersActivityTest :
 
 
 //    TODO: add End to End testing to the app
-
     //https://stackoverflow.com/questions/29924564/using-espresso-to-unit-test-google-maps
     @Test
     fun addNewReminder() {
@@ -107,12 +108,22 @@ class RemindersActivityTest :
 
             // Add new Reminder data
             onView(withId(R.id.addReminderFAB)).perform(click())
+
+            // Test reminder title error message
+            onView(withId(R.id.snackbar_text))
+                .check(matches(isDisplayed()))
+                .check(matches(withText(R.string.err_enter_title)))
             onView(withId(R.id.reminderTitle))
                 .perform(typeText(reminderTitleInput), closeSoftKeyboard())
             onView(withId(R.id.reminderDescription))
                 .perform(typeText("DESCRIPTION 123"))
 
             hideKeyboard()
+
+            // Test error select location
+            onView(withId(R.id.snackbar_text))
+                .check(matches(isDisplayed()))
+                .check(matches(withText(R.string.err_select_location)))
 
             // Select location
             onView(withId(R.id.selectLocation)).perform(click())
@@ -140,78 +151,20 @@ class RemindersActivityTest :
                 }
             }
 
-            //Unused
-//        activityScenario.onActivity { reminderActivity ->
-//            val latLng = LatLng(
-//                37.42225729384123,
-//                -122.08391804091225
-//            )
-//
-//            val navHostFragment: NavHostFragment =
-//                reminderActivity.navHostFragment //it.supportFragmentManager.findFragmentById(R.id.fragment_container) as NavHostFragment
-//            val selectLocationFragment: SelectLocationFragment =
-//                navHostFragment.childFragmentManager.fragments.first() as SelectLocationFragment
-//            val map = selectLocationFragment.googleMap
-//            map.animateCamera(CameraUpdateFactory.newLatLng(latLng)) // Googleplex coordinates
-//
-//            onView(isRoot()).perform(waitFor(4000)) // delay load maps
-//
-//            val tv = TypedValue()
-//            val actionBarHeight: Int =
-//                if (reminderActivity.theme.resolveAttribute(
-//                        android.R.attr.actionBarSize,
-//                        tv,
-//                        true
-//                    )
-//                ) {
-//                    TypedValue.complexToDimensionPixelSize(
-//                        tv.data,
-//                        reminderActivity.resources.displayMetrics
-//                    )
-//                } else {
-//                    throw Exception()
-//                }
-//            val statusBarHeight: Int = reminderActivity.getStatusBarHeight()
-//
-//            val screenPosition: Point = map.projection.toScreenLocation(latLng)
-//            val downTime = SystemClock.uptimeMillis()
-//            val eventTime = SystemClock.uptimeMillis() + 100
-//            val screenPositionX = screenPosition.x
-//            val screenPositionY = screenPosition.y + actionBarHeight + statusBarHeight
-//
-//            println("$screenPositionX - $screenPositionY")
-//            val motionEvent = MotionEvent.obtain(
-//                downTime,
-//                eventTime,
-//                MotionEvent.ACTION_UP,
-//                screenPositionX.toFloat(),
-//                screenPositionY.toFloat(),
-//                0
-//            )
-//            val v = selectLocationFragment.mapFragment.view
-//
-////            val success = device.findObject(
-////                UiSelector()
-////                    .className("com.google.android.gms.maps.SupportMapFragment")
-////            ).click()
-////            if (!success) throw assertFails {  }
-////            device.click(screenPositionX, screenPositionY)
-////            device.drag(screenPositionX, screenPositionY,screenPositionX, screenPositionY, 1000)
-////
-////            device.waitForIdle(1000)
-//            device.swipe(screenPositionX, screenPositionY-10, screenPositionX, screenPositionY+10, 200)
-//            v!!.dispatchTouchEvent(motionEvent)
-//
-//            onView(isRoot()).perform(waitFor(4000)) // delay load maps
-//        }
-
+            // Save location
             onView(withId(R.id.save)).perform(click())
 
+            // Save reminder
             onView(withId(R.id.saveReminder))
                 .check(matches(isDisplayed()))
                 .perform(click())
 
-            // Verify it was deleted
+            // Reminder saved toast
+            onView(withText(R.string.reminder_saved))
+                .inRoot(withDecorView(not(dataBindingIdlingResource.activity.window.decorView)))
+                .check(matches(isDisplayed()))
+
+            // Make sure recyclerview item count is equal to 1 and open detail reminder page
             onView(withId(R.id.reminderssRecyclerView))
                 .check(matches(isDisplayed()))
                 .check(RecyclerViewItemCountAssertion(1))
@@ -222,8 +175,10 @@ class RemindersActivityTest :
                     )
                 )
 
+            // going back to reminder list
             device.pressBack()
 
+            // make sure the title on index 0 in recyclerview is equal to the last created reminder
             onView(withId(R.id.reminderssRecyclerView))
                 .check(matches(atPosition(0, hasDescendant(withText(reminderTitleInput)))))
 

@@ -1,13 +1,16 @@
 package com.udacity.project4.locationreminders.savereminder
 
 import android.app.Application
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.map
 import com.google.android.gms.maps.model.Marker
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
+import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 
 class SaveReminderViewModel(
@@ -18,6 +21,10 @@ class SaveReminderViewModel(
 
     //Google Map
     val tempDataItem = MutableLiveData<ReminderDataItem?>()
+    val latLngCheck: LiveData<Boolean> = tempDataItem.map {
+        it?.latitude != null && it.longitude != null
+    }
+    var permissionGranted : Boolean = false
     private var tempMarker: Marker? = null
     var isMapLocationSaved: Boolean = false
 

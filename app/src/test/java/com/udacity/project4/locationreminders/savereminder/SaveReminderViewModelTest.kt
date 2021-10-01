@@ -2,6 +2,7 @@ package com.udacity.project4.locationreminders.savereminder
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
+import com.udacity.project4.R
 import com.udacity.project4.locationreminders.base.BaseTest
 import com.udacity.project4.locationreminders.data.ReminderFakeDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
@@ -11,6 +12,7 @@ import com.udacity.project4.locationreminders.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.test.inject
@@ -60,7 +62,7 @@ class SaveReminderViewModelTest : BaseTest() {
     }
 
     @Test
-    fun `GIVEN incorrect data WHEN validate entered data THEN result is false`() {
+    fun `GIVEN empty title reminder WHEN validate entered data THEN result is false and snackbar shown`() {
         // GIVEN incorrect data
         val data = ReminderDataItem(
             title = null,
@@ -73,8 +75,29 @@ class SaveReminderViewModelTest : BaseTest() {
         // WHEN validate entered data
         val result = saveReminderViewModel.validateEnteredData(data)
 
-        // THEN result is false
+        // THEN result is false and snackbar shown
         assertThat(result).isFalse()
+        assertThat(saveReminderViewModel.showSnackBarInt.getOrAwaitValue()).isEqualTo(R.string.err_enter_title)
+    }
+
+
+    @Test
+    fun `GIVEN location not selected WHEN validate entered data THEN result is false and snackbar shown`() {
+        // GIVEN incorrect data
+        val data = ReminderDataItem(
+            title = "This is title 123",
+            description = null,
+            location = null,
+            latitude = null,
+            longitude = null,
+        )
+
+        // WHEN validate entered data
+        val result = saveReminderViewModel.validateEnteredData(data)
+
+        // THEN result is false and snackbar shown
+        assertThat(result).isFalse()
+        assertThat(saveReminderViewModel.showSnackBarInt.getOrAwaitValue()).isEqualTo(R.string.err_select_location)
     }
 
     @Test
@@ -157,6 +180,6 @@ class SaveReminderViewModelTest : BaseTest() {
         saveReminderViewModel.onClear()
 
         // THEN result data is null
-        assertThat(saveReminderViewModel.reminderDataItem.getOrAwaitValue()).isNull()
+        assertThat(saveReminderViewModel.tempDataItem.getOrAwaitValue()).isNull()
     }
 }

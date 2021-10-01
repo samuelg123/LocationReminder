@@ -32,7 +32,7 @@
             style="@style/MaterialButton.Accent"
             android:layout_width="0dp"
             android:layout_height="60dp"
-            android:enabled="@{viewModel.reminderDataItem.latitude != null &amp;&amp; viewModel.reminderDataItem.longitude != null}"
+            android:enabled="@{viewModel.latLngCheck}"
             android:onClick="@{(v)->fragment.onLocationSelected()}"
             android:text="@string/save"
             app:elevation="0dp"

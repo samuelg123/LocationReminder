@@ -51,7 +51,24 @@ class RemindersLocalRepositoryTest : BaseTest() {
     // runBlocking used here because of https://github.com/Kotlin/kotlinx.coroutines/issues/1204
     // TODO replace with runBlockingTest once issue is resolved
     @Test
-    fun saveReminders_getReminderByIdIsEqualToInput() {
+    fun getInvalidReminderId_reminderIsNotFound() {
+        runBlocking {
+            //GIVEN
+            val invalidId = "thisIsInvalidID"
+
+            //WHEN
+            val reminderResult = repository.getReminder(invalidId)
+
+            //THEN
+            when (reminderResult) {
+                is Result.Error -> assertThat(reminderResult.message).isEqualTo("Reminder not found!")
+                is Result.Success -> assertFails("Incorrect. Reminder found!") {}
+            }
+        }
+    }
+
+    @Test
+    fun saveReminders_reminderByIdIsEqualToInput() {
         runBlocking {
             //GIVEN
             val input = reminders.first()
@@ -74,7 +91,7 @@ class RemindersLocalRepositoryTest : BaseTest() {
     }
 
     @Test
-    fun deleteReminders_getRemindersIsEmpty() {
+    fun deleteReminders_remindersIsEmpty() {
         runBlocking {
             //GIVEN
             repository.saveReminders(*reminders.toTypedArray())

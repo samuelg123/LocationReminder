@@ -76,8 +76,8 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         binding.saveReminder.setOnClickListener {
             val reminderData = viewModel.reminderDataItem.value ?: return@setOnClickListener
             lifecycleScope.launchWhenStarted {
-                if (startGeofence(reminderData)) {
-                    viewModel.validateAndSaveReminder(reminderData)
+                if (viewModel.validateAndSaveReminder(reminderData)) {
+                    startGeofence(reminderData)
                 }
             }
         }
@@ -88,7 +88,8 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     }
 
     private suspend fun startGeofence(vararg reminders: ReminderDataItem): Boolean {
-        if (parentActivity.requestForegroundAndBackgroundLocationPermissions() &&
+        if (
+            parentActivity.requestForegroundAndBackgroundLocationPermissions() &&
             parentActivity.enableLocationService()
         ) {
             for (reminder in reminders) {
@@ -124,7 +125,7 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
                         lng,
                         GEOFENCE_RADIUS_IN_METERS
                     )
-                    .setExpirationDuration(GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+                    .setExpirationDuration(Geofence.NEVER_EXPIRE)
                     .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER)
                     .build()
 
@@ -134,7 +135,6 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
                     .build()
 
                 return try {
-                    geofencingClient.removeGeofences(geofencePendingIntent).asDeferred().await()
                     if (parentActivity.foregroundAndBackgroundLocationPermissionApproved())
                         geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
                             .asDeferred()
@@ -161,6 +161,5 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         internal const val ACTION_GEOFENCE_EVENT =
             "RemindersActivity.locationreminders.action.ACTION_GEOFENCE_EVENT"
         const val GEOFENCE_RADIUS_IN_METERS = 300f
-        val GEOFENCE_EXPIRATION_IN_MILLISECONDS: Long = TimeUnit.HOURS.toMillis(1)
     }
 }

@@ -4,12 +4,10 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.content.res.Resources
-import android.location.Address
 import android.location.Location
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.*
 import androidx.annotation.RawRes
 import androidx.core.app.ActivityCompat
@@ -32,14 +30,12 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import com.udacity.project4.utils.toast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
-import android.location.Geocoder
-import java.lang.StringBuilder
 import java.util.*
 
 
@@ -156,6 +152,10 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickMap(latLng: LatLng) {
+        if(!viewModel.permissionGranted){
+            toast(R.string.permission_denied_explanation)
+            return
+        }
         viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
             latitude = latLng.latitude,
             longitude = latLng.longitude,
@@ -164,6 +164,10 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickPoi(poi: PointOfInterest) {
+        if(!viewModel.permissionGranted){
+            toast(R.string.permission_denied_explanation)
+            return
+        }
         viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
             latitude = poi.latLng.latitude,
             longitude = poi.latLng.longitude,
@@ -230,15 +234,18 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
 
     @SuppressLint("MissingPermission")
     private suspend fun enableMyLocation() = withContext(Dispatchers.Main) {
-        var isGranted = isPermissionGranted()
-        if (!isGranted) isGranted = requestLocationPermission()
-        if (isGranted) parentActivity.enableLocationService() else return@withContext
+        viewModel.permissionGranted = isPermissionGranted()
+        if (!viewModel.permissionGranted) viewModel.permissionGranted = requestLocationPermission()
+        if (viewModel.permissionGranted) parentActivity.enableLocationService()
+        else {
+            toast(R.string.permission_denied_explanation)
+            return@withContext
+        }
         viewModel.tempDataItem.value?.run {
             if (latitude == null || longitude == null) gotoMyLocation()
         }
         googleMap.isMyLocationEnabled = true
     }
-
 
     private suspend fun requestLocationPermission(): Boolean =
         parentActivity.requestForPermissions(

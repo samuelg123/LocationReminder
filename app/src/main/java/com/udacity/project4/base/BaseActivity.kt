@@ -71,7 +71,7 @@ abstract class BaseActivity : AppCompatActivity() {
             } catch (e: ClassCastException) {
                 // Ignore, should be an impossible error.
                 false
-            } catch (e: Throwable){
+            } catch (e: Throwable) {
                 false
             }
         } ?: false
@@ -114,15 +114,14 @@ abstract class BaseActivity : AppCompatActivity() {
         var isGranted = false
 
         try {
-            val locationSettings =
-                LocationServices.getSettingsClient(this)
-                    .checkLocationSettings(settingsBuilder.build())
-                    .asDeferred().await()
+            LocationServices.getSettingsClient(this)
+                .checkLocationSettings(settingsBuilder.build())
+                .asDeferred().await()
             isGranted = true
         } catch (ex: ResolvableApiException) {
             when (ex.statusCode) {
                 LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
-                     isGranted = ex.status.resolutionForResult()
+                    isGranted = ex.status.resolutionForResult()
                 }
                 LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
                     /* no-op */
