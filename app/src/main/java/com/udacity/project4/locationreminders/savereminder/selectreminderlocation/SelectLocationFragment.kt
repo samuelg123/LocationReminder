@@ -152,7 +152,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickMap(latLng: LatLng) {
-        if(!viewModel.permissionGranted){
+        if (!viewModel.permissionGranted) {
             toast(R.string.permission_denied_explanation)
             return
         }
@@ -164,7 +164,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickPoi(poi: PointOfInterest) {
-        if(!viewModel.permissionGranted){
+        if (!viewModel.permissionGranted) {
             toast(R.string.permission_denied_explanation)
             return
         }
@@ -236,8 +236,13 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     private suspend fun enableMyLocation() = withContext(Dispatchers.Main) {
         viewModel.permissionGranted = isPermissionGranted()
         if (!viewModel.permissionGranted) viewModel.permissionGranted = requestLocationPermission()
-        if (viewModel.permissionGranted) parentActivity.enableLocationService()
-        else {
+        if (viewModel.permissionGranted) {
+            viewModel.locationEnabled = parentActivity.enableLocationService()
+            if (!viewModel.locationEnabled) {
+                toast(R.string.location_required_error)
+                return@withContext
+            }
+        } else {
             toast(R.string.permission_denied_explanation)
             return@withContext
         }

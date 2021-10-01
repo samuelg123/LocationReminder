@@ -25,6 +25,7 @@ class SaveReminderViewModel(
         it?.latitude != null && it.longitude != null
     }
     var permissionGranted : Boolean = false
+    var locationEnabled : Boolean = false
     private var tempMarker: Marker? = null
     var isMapLocationSaved: Boolean = false
 
