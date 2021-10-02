@@ -235,17 +235,21 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
             viewModel.showToast.value = getString(R.string.permission_denied_explanation)
             return@withContext
         }
-        // request location service settings enabled & make sure again gps/device location is enabled
-        if (!parentActivity.enableLocationServiceSettings(PRIORITY_HIGH_ACCURACY) || !parentActivity.isDeviceLocationEnabled()) {
-            toast(R.string.location_required_error)
-            showEnableGPSDialog()
-            return@withContext
-        }
         //enable my location button
         googleMap.isMyLocationEnabled = true
-        //Go to my current location if there's no selected location
+        googleMap.uiSettings.isMyLocationButtonEnabled = true
+
         viewModel.tempSelectedDataItem.value?.run {
-            if (latitude == null || longitude == null) gotoMyLocation()
+            //Go to my current location if there's no selected location
+            if (latitude == null || longitude == null) {
+                // Note that my location (blue dot on the map) will not appear if the gps isn't enabled.
+                // I'm using enableLocationServiceSettings to enable gps rather than open settings / using Intent
+                if(!parentActivity.isDeviceLocationEnabled()){
+                    viewModel.showToast.value = "Enable your gps to see your current location!"
+                    parentActivity.enableLocationServiceSettings()
+                }
+                gotoMyLocation()
+            }
         }
     }
 
