@@ -73,31 +73,33 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
                 NavigationCommand.To(SaveReminderFragmentDirections.actionSaveReminderFragmentToSelectLocationFragment())
         }
 
-        binding.saveReminder.setOnClickListener {
-            val reminderData = viewModel.reminderDataItem.value ?: return@setOnClickListener
-            lifecycleScope.launchWhenStarted {
-                //check both foreground and background location permission
-                var isPermissionGranted =
-                    parentActivity.isForegroundAndBackgroundLocationPermissionGranted()
-                //request foreground permission when foreground and background location permission not granted
-                if (!isPermissionGranted) isPermissionGranted =
-                    parentActivity.requestLocationPermission(true)
-                // still not granted? show toast
-                if (!isPermissionGranted) {
-                    viewModel.showToast.value = getString(R.string.permission_denied_explanation)
-                    return@launchWhenStarted
-                }
-                // request location service settings enabled & make sure again gps/device location is enabled
-                if (!parentActivity.enableLocationServiceSettings() || !parentActivity.isDeviceLocationEnabled()) {
-                    toast(R.string.location_required_error)
-                    showEnableGPSDialog()
-                    return@launchWhenStarted
-                }
-                //validate data and save reminder
-                if (viewModel.validateAndSaveReminder(reminderData)) {
-                    //all good. adding geofence.
-                    addGeofence(reminderData)
-                }
+        binding.saveReminder.setOnClickListener(::onSaveReminder)
+    }
+
+    private fun onSaveReminder(v:View){
+        val reminderData = viewModel.reminderDataItem.value ?: return
+        lifecycleScope.launchWhenStarted {
+            //check both foreground and background location permission
+            var isPermissionGranted =
+                parentActivity.isForegroundAndBackgroundLocationPermissionGranted()
+            //request foreground permission when foreground and background location permission not granted
+            if (!isPermissionGranted) isPermissionGranted =
+                parentActivity.requestLocationPermission(true)
+            // still not granted? show toast
+            if (!isPermissionGranted) {
+                viewModel.showToast.value = getString(R.string.permission_denied_explanation)
+                return@launchWhenStarted
+            }
+            // request location service settings enabled & make sure again gps/device location is enabled
+            if (!parentActivity.enableLocationServiceSettings() || !parentActivity.isDeviceLocationEnabled()) {
+                toast(R.string.location_required_error)
+                showEnableGPSDialog()
+                return@launchWhenStarted
+            }
+            //validate data and save reminder
+            if (viewModel.validateAndSaveReminder(reminderData)) {
+                //all good. adding geofence.
+                addGeofence(reminderData)
             }
         }
     }
