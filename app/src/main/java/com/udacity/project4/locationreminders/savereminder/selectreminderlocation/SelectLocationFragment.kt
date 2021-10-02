@@ -158,11 +158,11 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickMap(latLng: LatLng) {
-        if (!viewModel.permissionGranted) {
-            toast(R.string.permission_denied_explanation)
-            return
-        }
         viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+            latitude = latLng.latitude,
+            longitude = latLng.longitude,
+            location = getString(R.string.custom_location),
+        ) ?: ReminderDataItem(
             latitude = latLng.latitude,
             longitude = latLng.longitude,
             location = getString(R.string.custom_location),
@@ -170,10 +170,6 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickPoi(poi: PointOfInterest) {
-        if (!viewModel.permissionGranted) {
-            toast(R.string.permission_denied_explanation)
-            return
-        }
         viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
             latitude = poi.latLng.latitude,
             longitude = poi.latLng.longitude,
