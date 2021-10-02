@@ -12,7 +12,6 @@ import com.udacity.project4.locationreminders.util.*
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runBlockingTest
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.test.inject
@@ -145,7 +144,7 @@ class SaveReminderViewModelTest : BaseTest() {
             latitude = coordinates.latitude,
             longitude = coordinates.longitude,
         )
-        saveReminderViewModel.tempDataItem.value = input
+        saveReminderViewModel.tempSelectedDataItem.value = input
 
         // WHEN save reminder
         saveReminderViewModel.commitLocation()
@@ -180,6 +179,6 @@ class SaveReminderViewModelTest : BaseTest() {
         saveReminderViewModel.onClear()
 
         // THEN result data is null
-        assertThat(saveReminderViewModel.tempDataItem.getOrAwaitValue()).isNull()
+        assertThat(saveReminderViewModel.tempSelectedDataItem.getOrAwaitValue()).isNull()
     }
 }

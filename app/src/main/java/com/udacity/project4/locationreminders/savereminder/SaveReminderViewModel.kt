@@ -10,7 +10,6 @@ import com.udacity.project4.base.BaseViewModel
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.locationreminders.data.ReminderDataSource
 import com.udacity.project4.locationreminders.data.dto.ReminderDTO
-import com.udacity.project4.locationreminders.data.dto.Result
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 
 class SaveReminderViewModel(
@@ -20,17 +19,15 @@ class SaveReminderViewModel(
     val reminderDataItem = MutableLiveData(ReminderDataItem())
 
     //Google Map
-    val tempDataItem = MutableLiveData<ReminderDataItem?>()
-    val latLngCheck: LiveData<Boolean> = tempDataItem.map {
+    val tempSelectedDataItem = MutableLiveData<ReminderDataItem?>()
+    val latLngCheck: LiveData<Boolean> = tempSelectedDataItem.map {
         it?.latitude != null && it.longitude != null
     }
-    var permissionGranted : Boolean = false
-    var locationEnabled : Boolean = false
     private var tempMarker: Marker? = null
     var isMapLocationSaved: Boolean = false
 
     fun loadReminderDataItem() {
-        tempDataItem.value = reminderDataItem.value
+        tempSelectedDataItem.value = reminderDataItem.value
     }
 
     fun setMarker(marker: Marker?) {
@@ -39,13 +36,13 @@ class SaveReminderViewModel(
     }
 
     fun commitLocation() {
-        reminderDataItem.value = tempDataItem.value
+        reminderDataItem.value = tempSelectedDataItem.value
         isMapLocationSaved = true
     }
 
     fun clearCurrentLocation() {
         if (!isMapLocationSaved) {
-            tempDataItem.value = null
+            tempSelectedDataItem.value = null
         } else {
             isMapLocationSaved = false
         }
@@ -56,7 +53,7 @@ class SaveReminderViewModel(
      */
     fun onClear() {
         reminderDataItem.value = ReminderDataItem()
-        tempDataItem.value = null
+        tempSelectedDataItem.value = null
         tempMarker = null
     }
 

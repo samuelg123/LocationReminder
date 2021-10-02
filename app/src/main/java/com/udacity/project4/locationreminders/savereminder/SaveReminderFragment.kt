@@ -20,10 +20,10 @@ import com.udacity.project4.databinding.FragmentSaveReminderBinding
 import com.udacity.project4.locationreminders.geofence.GeofenceBroadcastReceiver
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
-import kotlinx.coroutines.launch
+import com.udacity.project4.utils.showEnableGPSDialog
+import com.udacity.project4.utils.toast
 import kotlinx.coroutines.tasks.asDeferred
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
-import java.util.concurrent.TimeUnit
 
 class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     //Get the view model this time as a single to be shared with the another fragment
@@ -76,12 +76,27 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
         binding.saveReminder.setOnClickListener {
             val reminderData = viewModel.reminderDataItem.value ?: return@setOnClickListener
             lifecycleScope.launchWhenStarted {
-                if (parentActivity.foregroundAndBackgroundLocationPermissionApproved() && parentActivity.isLocationEnabled()) {
-                    if (viewModel.validateAndSaveReminder(reminderData)) {
-                        startGeofence(reminderData)
-                    }
-                } else {
-                    viewModel.showSnackBarInt.value = R.string.location_required_error
+                //check both foreground and background location permission
+                var isPermissionGranted =
+                    parentActivity.isForegroundAndBackgroundLocationPermissionGranted()
+                //request foreground permission when foreground and background location permission not granted
+                if (!isPermissionGranted) isPermissionGranted =
+                    parentActivity.requestLocationPermission(true)
+                // still not granted? show toast
+                if (!isPermissionGranted) {
+                    viewModel.showToast.value = getString(R.string.permission_denied_explanation)
+                    return@launchWhenStarted
+                }
+                // request location service settings enabled & make sure again gps/device location is enabled
+                if (!parentActivity.enableLocationServiceSettings() || !parentActivity.isDeviceLocationEnabled()) {
+                    toast(R.string.location_required_error)
+                    showEnableGPSDialog()
+                    return@launchWhenStarted
+                }
+                //validate data and save reminder
+                if (viewModel.validateAndSaveReminder(reminderData)) {
+                    //all good. adding geofence.
+                    addGeofence(reminderData)
                 }
             }
         }
@@ -89,13 +104,6 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
 
     private fun initGeofencing() {
         geofencingClient = LocationServices.getGeofencingClient(requireContext())
-    }
-
-    private suspend fun startGeofence(vararg reminders: ReminderDataItem): Boolean {
-        for (reminder in reminders) {
-            if (!addGeofence(reminder)) return false
-        }
-        return true
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,10 +138,9 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
                     .build()
 
                 return try {
-                    if (parentActivity.foregroundAndBackgroundLocationPermissionApproved())
-                        geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
-                            .asDeferred()
-                            .await()
+                    geofencingClient.addGeofences(geofencingRequest, geofencePendingIntent)
+                        .asDeferred()
+                        .await()
                     true
                 } catch (e: Exception) {
                     false
@@ -143,7 +150,6 @@ class SaveReminderFragment : BaseFragment<SaveReminderViewModel>() {
     }
 
     private suspend fun removeGeofences(): Boolean {
-        if (!parentActivity.foregroundAndBackgroundLocationPermissionApproved()) return false
         return try {
             geofencingClient.removeGeofences(geofencePendingIntent).asDeferred().await()
             true

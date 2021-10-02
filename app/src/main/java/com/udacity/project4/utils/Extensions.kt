@@ -5,11 +5,15 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.Activity
 import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -82,4 +86,15 @@ fun Fragment.toast(message: String, duration: Int = Toast.LENGTH_LONG) {
 
 fun Fragment.toast(@StringRes resId: Int, duration: Int = Toast.LENGTH_LONG) {
     Toast.makeText(requireContext(), resId, duration).show()
+}
+
+fun Fragment.showEnableGPSDialog() {
+    AlertDialog.Builder(requireContext())
+        .setTitle("GPS not found")
+        .setMessage("Enable now?")
+        .setPositiveButton("Yes") { _, _ ->
+            requireContext().startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+        }
+        .setNegativeButton("No") { _, _ -> }
+        .show()
 }

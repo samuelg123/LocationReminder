@@ -11,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.navigation.fragment.NavHostFragment
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.common.api.Status
@@ -77,7 +78,17 @@ abstract class BaseActivity : AppCompatActivity() {
         } ?: false
     }
 
-    fun foregroundAndBackgroundLocationPermissionApproved(): Boolean {
+    fun isForegroundLocationPermissionGranted(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+                ActivityCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+    fun isForegroundAndBackgroundLocationPermissionGranted(): Boolean {
         val foregroundLocationApproved = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
                 PackageManager.PERMISSION_GRANTED == ActivityCompat.checkSelfPermission(
             this,
@@ -93,18 +104,21 @@ abstract class BaseActivity : AppCompatActivity() {
         return foregroundLocationApproved && backgroundPermissionApproved
     }
 
-    suspend fun requestForegroundAndBackgroundLocationPermissions(): Boolean {
-        if (foregroundAndBackgroundLocationPermissionApproved()) return true
-        var permissionsArray = arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            permissionsArray += Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        }
-        return requestForPermissions(*permissionsArray)
-    }
+    suspend fun requestLocationPermission(useBackgroundLocation: Boolean): Boolean =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            var permissions = arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && useBackgroundLocation) {
+                permissions += Manifest.permission.ACCESS_BACKGROUND_LOCATION
+            }
+            requestForPermissions(*permissions)
+        } else true
 
-    suspend fun enableLocationService(): Boolean {
+    suspend fun enableLocationServiceSettings(priority: Int = LocationRequest.PRIORITY_LOW_POWER): Boolean {
         val locationRequest = LocationRequest.create()
-            .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
+            .setPriority(priority)
             .setInterval((10 * 1000).toLong())
             .setFastestInterval((1 * 1000).toLong())
 
@@ -121,6 +135,7 @@ abstract class BaseActivity : AppCompatActivity() {
         } catch (ex: ResolvableApiException) {
             when (ex.statusCode) {
                 LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
+                    //this should enable device gps
                     isGranted = ex.status.resolutionForResult()
                 }
                 LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
@@ -137,8 +152,8 @@ abstract class BaseActivity : AppCompatActivity() {
         return isGranted
     }
 
-    fun isLocationEnabled() : Boolean {
+    fun isDeviceLocationEnabled(): Boolean {
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        return LocationManagerCompat.isLocationEnabled(locationManager)
     }
 }

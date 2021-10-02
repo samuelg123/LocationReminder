@@ -1,23 +1,17 @@
 package com.udacity.project4.locationreminders.savereminder.selectreminderlocation
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.location.Location
-import android.location.LocationManager
-import android.os.Build
 import android.os.Bundle
 import android.view.*
 import androidx.annotation.RawRes
-import androidx.annotation.VisibleForTesting
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat.getSystemService
 import androidx.databinding.DataBindingUtil
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.GeofencingClient
+import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -31,11 +25,12 @@ import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.databinding.FragmentSelectLocationBinding
 import com.udacity.project4.locationreminders.reminderslist.ReminderDataItem
 import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
-import com.udacity.project4.utils.EspressoIdlingResource
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
+import com.udacity.project4.utils.showEnableGPSDialog
 import com.udacity.project4.utils.toast
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.asDeferred
 import kotlinx.coroutines.withContext
 import org.koin.androidx.viewmodel.ext.android.sharedViewModel
@@ -47,7 +42,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     override val viewModel by sharedViewModel<SaveReminderViewModel>()
 
     //Use Koin to get the view model of the SaveReminder
-    lateinit var googleMap: GoogleMap
+    private lateinit var googleMap: GoogleMap
     var isMapReady: CompletableDeferred<Boolean> = CompletableDeferred()
     lateinit var mapFragment: SupportMapFragment
     private lateinit var geofencingClient: GeofencingClient
@@ -136,13 +131,10 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
 
         googleMap.setOnPoiClickListener(::onClickPoi)
 
-        lifecycleScope.launchWhenStarted {
-            enableMyLocation()
-        }
         viewModel.latLngCheck.observe(viewLifecycleOwner) {
             onSelectedCompleter.complete(it)
         }
-        viewModel.tempDataItem.observe(viewLifecycleOwner) {
+        viewModel.tempSelectedDataItem.observe(viewLifecycleOwner) {
             it?.run {
                 latitude?.let { lat ->
                     longitude?.let { lng ->
@@ -155,10 +147,14 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
             }
         }
         isMapReady.complete(true)
+
+        lifecycleScope.launch {
+            enableMyLocation()
+        }
     }
 
-    fun onClickMap(latLng: LatLng) {
-        viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+    private fun onClickMap(latLng: LatLng) {
+        viewModel.tempSelectedDataItem.value = viewModel.tempSelectedDataItem.value?.copy(
             latitude = latLng.latitude,
             longitude = latLng.longitude,
             location = getString(R.string.custom_location),
@@ -170,7 +166,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     fun onClickPoi(poi: PointOfInterest) {
-        viewModel.tempDataItem.value = viewModel.tempDataItem.value?.copy(
+        viewModel.tempSelectedDataItem.value = viewModel.tempSelectedDataItem.value?.copy(
             latitude = poi.latLng.latitude,
             longitude = poi.latLng.longitude,
             location = poi.name
@@ -182,7 +178,7 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
     }
 
     private fun onUpdateLocation(name: String, latLng: LatLng) {
-        gotoLocation(latLng)
+        animateMapCameraTo(latLng)
         setMarker(latLng, name)?.showInfoWindow()
     }
 
@@ -207,80 +203,51 @@ class SelectLocationFragment : BaseFragment<SaveReminderViewModel>(), OnMapReady
         val lastLocation = getLastLocation() ?: return
         val homeLatLng = LatLng(lastLocation.latitude, lastLocation.longitude)
         withContext(Dispatchers.Main) {
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(homeLatLng, 15F))
+            animateMapCameraTo(homeLatLng)
         }
     }
 
-    private fun gotoLocation(latLng: LatLng) {
+    private fun animateMapCameraTo(latLng: LatLng) {
         googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15F))
     }
 
     @SuppressLint("MissingPermission")
-    private suspend fun getLastLocation(): Location? {
-        if (isPermissionGranted() && isLocationEnabled()) {
-            return fusedLocationClient.getCurrentLocation(
-                PRIORITY_HIGH_ACCURACY,
-                cancellationTokenSource.token
-            ).asDeferred().await()
-        }
-        return null
-    }
+    private suspend fun getLastLocation(): Location? =
+        fusedLocationClient.getCurrentLocation(
+            PRIORITY_HIGH_ACCURACY,
+            cancellationTokenSource.token
+        ).asDeferred().await()
 
     override fun onStop() {
         super.onStop()
         cancellationTokenSource.cancel()
     }
 
-    private fun isLocationEnabled(): Boolean {
-        val locationManager: LocationManager? =
-            getSystemService(requireContext(), LocationManager::class.java)
-        return locationManager != null && (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
-                locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
-    }
-
     @SuppressLint("MissingPermission")
     private suspend fun enableMyLocation() = withContext(Dispatchers.Main) {
-        viewModel.permissionGranted = isPermissionGranted()
-        if (!viewModel.permissionGranted) {
-            viewModel.permissionGranted = requestLocationPermission()
-        }
-        if (viewModel.permissionGranted) {
-            viewModel.locationEnabled = parentActivity.enableLocationService()
-            if (!viewModel.locationEnabled) {
-                toast(R.string.location_required_error)
-                return@withContext
-            }
-        } else {
-            toast(R.string.permission_denied_explanation)
+        //check foreground location permission
+        var isPermissionGranted = parentActivity.isForegroundLocationPermissionGranted()
+        //request foreground permission when foreground location permission not granted
+        if (!isPermissionGranted) isPermissionGranted =
+            parentActivity.requestLocationPermission(false)
+        // still not granted? show toast
+        if (!isPermissionGranted) {
+            viewModel.showToast.value = getString(R.string.permission_denied_explanation)
             return@withContext
         }
-        viewModel.tempDataItem.value?.run {
+        // request location service settings enabled & make sure again gps/device location is enabled
+        if (!parentActivity.enableLocationServiceSettings(PRIORITY_HIGH_ACCURACY) || !parentActivity.isDeviceLocationEnabled()) {
+            toast(R.string.location_required_error)
+            showEnableGPSDialog()
+            return@withContext
+        }
+        //enable my location button
+        googleMap.isMyLocationEnabled = true
+        //Go to my current location if there's no selected location
+        viewModel.tempSelectedDataItem.value?.run {
             if (latitude == null || longitude == null) gotoMyLocation()
         }
-        googleMap.isMyLocationEnabled = true
     }
-
-    private suspend fun requestLocationPermission(): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            var permissions = arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                permissions += Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            }
-            parentActivity.requestForPermissions(*permissions)
-        } else true
-
-    private fun isPermissionGranted(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
-            ActivityCompat.checkSelfPermission(
-                requireContext(),
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-        requireContext(),
-        Manifest.permission.ACCESS_COARSE_LOCATION
-    ) == PackageManager.PERMISSION_GRANTED
-
 
     override fun onDestroyView() {
         super.onDestroyView()
