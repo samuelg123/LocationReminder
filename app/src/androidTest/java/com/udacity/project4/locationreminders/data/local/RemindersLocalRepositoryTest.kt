@@ -57,13 +57,13 @@ class RemindersLocalRepositoryTest : BaseTest() {
             val invalidId = "thisIsInvalidID"
 
             //WHEN
-            val reminderResult = repository.getReminder(invalidId)
+            var reminderResult = repository.getReminder(invalidId)
 
             //THEN
-            when (reminderResult) {
-                is Result.Error -> assertThat(reminderResult.message).isEqualTo("Reminder not found!")
-                is Result.Success -> assertFails("Incorrect. Reminder found!") {}
-            }
+            assertThat(reminderResult is Result.Error).isTrue()
+//            assertThat(reminderResult).isInstanceOf(Result.Error::class.java)
+            reminderResult = reminderResult as Result.Error
+            assertThat(reminderResult.message).isEqualTo("Reminder not found!")
         }
     }
 
